@@ -68,6 +68,7 @@ type AdminOrder = {
   orderNumberFormatted: string;
   customerName: string;
   status: OrderStatus;
+  paymentStatus: "PENDENTE" | "PAGO" | "FALHOU" | "CANCELADO";
   total: number;
   displayTime: string;
   createdAt: string;
@@ -226,6 +227,10 @@ export function CatalogManager() {
   const [bannerForm, setBannerForm] = useState(emptyBannerForm);
   const [activeSection, setActiveSection] = useState<PanelSection>("overview");
   const [productSearch, setProductSearch] = useState("");
+  const [orderSearch, setOrderSearch] = useState("");
+  const [historyStatusFilter, setHistoryStatusFilter] = useState<OrderStatus | "TODOS">(
+    "TODOS",
+  );
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [loading, setLoading] = useState(true);
@@ -312,6 +317,22 @@ export function CatalogManager() {
   );
 
   const recentOrders = useMemo(() => orders.slice(0, 6), [orders]);
+
+  const filteredOrderHistory = useMemo(() => {
+    const term = orderSearch.trim().toLowerCase();
+
+    return orders.filter((order) => {
+      const matchesStatus =
+        historyStatusFilter === "TODOS" || order.status === historyStatusFilter;
+
+      const matchesSearch =
+        !term ||
+        order.customerName.toLowerCase().includes(term) ||
+        order.orderNumberFormatted.toLowerCase().includes(term);
+
+      return matchesStatus && matchesSearch;
+    });
+  }, [historyStatusFilter, orderSearch, orders]);
 
   async function handleProductSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -1495,7 +1516,7 @@ export function CatalogManager() {
                   Historico
                 </p>
                 <h2 className="mt-2 text-3xl font-black uppercase">
-                  Pedidos recentes
+                  Historico completo de pedidos
                 </h2>
               </div>
               <Link
@@ -1506,48 +1527,106 @@ export function CatalogManager() {
               </Link>
             </div>
 
-            <div className="mt-6 grid gap-4 lg:grid-cols-2">
-              {recentOrders.length === 0 ? (
-                <div className="rounded-[22px] border border-dashed border-[var(--line)] bg-white/60 p-5 text-sm text-[var(--muted)] lg:col-span-2">
-                  Nenhum pedido registrado ainda.
+            <div className="mt-6 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+              <label className="relative block w-full max-w-md">
+                <Search
+                  size={16}
+                  className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-[var(--muted)]"
+                />
+                <input
+                  value={orderSearch}
+                  onChange={(event) => setOrderSearch(event.target.value)}
+                  placeholder="Buscar por cliente ou numero do pedido"
+                  className="w-full rounded-full border border-[var(--line)] bg-white py-3 pl-11 pr-4 text-sm"
+                />
+              </label>
+
+              <div className="flex flex-wrap gap-2">
+                {(["TODOS", "NOVO", "EM_PREPARO", "PRONTO", "ENTREGUE"] as const).map(
+                  (status) => (
+                    <button
+                      key={status}
+                      type="button"
+                      onClick={() => setHistoryStatusFilter(status)}
+                      className={`rounded-full px-4 py-2 text-xs font-bold uppercase tracking-[0.14em] ${
+                        historyStatusFilter === status
+                          ? "bg-[var(--brand)] text-white"
+                          : "glass-pill text-[var(--foreground)]"
+                      }`}
+                    >
+                      {status === "TODOS"
+                        ? "Todos"
+                        : status === "EM_PREPARO"
+                          ? "Em preparo"
+                          : orderStatusLabels[status]}
+                    </button>
+                  ),
+                )}
+              </div>
+            </div>
+
+            <div className="mt-6 space-y-4">
+              {filteredOrderHistory.length === 0 ? (
+                <div className="rounded-[22px] border border-dashed border-[var(--line)] bg-white/60 p-5 text-sm text-[var(--muted)]">
+                  Nenhum pedido encontrado com esse filtro.
                 </div>
               ) : (
-                recentOrders.map((order) => (
+                filteredOrderHistory.map((order) => (
                   <article
                     key={order.id}
                     className="rounded-[22px] border border-[var(--line)] bg-white/80 p-5"
                   >
-                    <div className="flex flex-wrap items-start justify-between gap-3">
+                    <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
                       <div>
-                        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--brand-strong)]">
-                          Pedido {order.orderNumberFormatted}
-                        </p>
-                        <h3 className="mt-2 text-lg font-black">{order.customerName}</h3>
+                        <div className="flex flex-wrap items-center gap-2">
+                          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--brand-strong)]">
+                            Pedido {order.orderNumberFormatted}
+                          </p>
+                          <span className="rounded-full bg-[var(--surface-strong)] px-3 py-1.5 text-[11px] font-bold uppercase tracking-[0.12em]">
+                            {orderStatusLabels[order.status]}
+                          </span>
+                          <span className="rounded-full bg-white px-3 py-1.5 text-[11px] font-bold uppercase tracking-[0.12em] text-[var(--muted)]">
+                            {order.paymentStatus}
+                          </span>
+                        </div>
+                        <h3 className="mt-3 text-lg font-black">{order.customerName}</h3>
                         <p className="mt-1 text-sm text-[var(--muted)]">
                           {order.displayTime}
                         </p>
                       </div>
-                      <span className="rounded-full bg-[var(--surface-strong)] px-3 py-2 text-xs font-bold uppercase tracking-[0.12em]">
-                        {orderStatusLabels[order.status]}
-                      </span>
-                    </div>
 
-                    <div className="mt-4 space-y-2 text-sm text-[var(--muted)]">
-                      {order.items.slice(0, 3).map((item) => (
-                        <p key={item.id}>
-                          {item.quantity}x {item.productName}
+                      <div className="rounded-[18px] bg-[var(--surface)] px-4 py-3 text-right">
+                        <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--muted)]">
+                          Total
                         </p>
-                      ))}
-                      {order.items.length > 3 ? (
-                        <p>+ {order.items.length - 3} item(ns)</p>
-                      ) : null}
+                        <strong className="mt-1 block text-lg text-[var(--brand)]">
+                          {formatCurrency(order.total)}
+                        </strong>
+                      </div>
                     </div>
 
-                    <div className="mt-4 flex items-center justify-between rounded-[18px] bg-[var(--surface)] px-4 py-3">
-                      <span className="text-sm text-[var(--muted)]">Total</span>
-                      <strong className="text-[var(--brand)]">
-                        {formatCurrency(order.total)}
-                      </strong>
+                    <div className="mt-4 grid gap-4 lg:grid-cols-[1fr_220px]">
+                      <div className="space-y-2 text-sm text-[var(--muted)]">
+                        {order.items.map((item) => (
+                          <p key={item.id}>
+                            {item.quantity}x {item.productName}
+                          </p>
+                        ))}
+                      </div>
+                      <div className="rounded-[20px] border border-[var(--line)] bg-[var(--surface)] px-4 py-4 text-sm leading-6 text-[var(--muted)]">
+                        <p>
+                          <strong className="text-[var(--foreground)]">Itens:</strong>{" "}
+                          {order.items.length}
+                        </p>
+                        <p>
+                          <strong className="text-[var(--foreground)]">Status:</strong>{" "}
+                          {orderStatusLabels[order.status]}
+                        </p>
+                        <p>
+                          <strong className="text-[var(--foreground)]">Pagamento:</strong>{" "}
+                          {order.paymentStatus}
+                        </p>
+                      </div>
                     </div>
                   </article>
                 ))

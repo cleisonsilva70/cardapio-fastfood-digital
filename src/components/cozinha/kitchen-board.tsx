@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { Trash2 } from "lucide-react";
 import {
   kitchenStatusActions,
   orderStatusLabels,
@@ -33,6 +34,7 @@ export function KitchenBoard({ initialOrders }: { initialOrders: Order[] }) {
   const router = useRouter();
   const [orders, setOrders] = useState(initialOrders);
   const [loadingId, setLoadingId] = useState<string | null>(null);
+  const [isClearingDelivered, setIsClearingDelivered] = useState(false);
   const [boardError, setBoardError] = useState("");
   const [soundEnabled, setSoundEnabled] = useState(true);
   const soundEnabledRef = useRef(true);
@@ -217,6 +219,40 @@ export function KitchenBoard({ initialOrders }: { initialOrders: Order[] }) {
     }
   }
 
+  async function clearDeliveredColumn() {
+    setIsClearingDelivered(true);
+    setBoardError("");
+
+    try {
+      const response = await fetch("/api/pedidos/entregues/reset", {
+        method: "DELETE",
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        if (response.status === 401) {
+          setBoardError("Sua sessao expirou. Faca login novamente.");
+          router.push("/acesso-cozinha");
+          return;
+        }
+
+        setBoardError(data.error ?? "Nao foi possivel limpar os pedidos entregues.");
+        return;
+      }
+
+      setOrders((current) =>
+        current.filter(
+          (order) => !(order.status === "ENTREGUE" && !order.kitchenClearedAt),
+        ),
+      );
+    } catch {
+      setBoardError("Falha ao limpar a coluna de pedidos entregues.");
+    } finally {
+      setIsClearingDelivered(false);
+    }
+  }
+
   return (
     <div className="space-y-8">
       <header className="panel-card luxury-section overflow-hidden p-6 sm:p-8">
@@ -306,9 +342,23 @@ export function KitchenBoard({ initialOrders }: { initialOrders: Order[] }) {
                   {orderStatusLabels[status]}
                 </h2>
               </div>
-              <span className="rounded-full bg-white px-3 py-2 text-sm font-bold text-[var(--foreground)]">
-                {groupedOrders[status].length}
-              </span>
+              <div className="flex items-center gap-2">
+                {status === "ENTREGUE" ? (
+                  <button
+                    type="button"
+                    onClick={clearDeliveredColumn}
+                    disabled={isClearingDelivered || groupedOrders[status].length === 0}
+                    className="glass-pill inline-flex h-10 w-10 items-center justify-center rounded-full text-[var(--danger)] disabled:cursor-not-allowed disabled:opacity-45"
+                    aria-label="Limpar coluna de entregues"
+                    title="Limpar coluna de entregues"
+                  >
+                    <Trash2 size={16} />
+                  </button>
+                ) : null}
+                <span className="rounded-full bg-white px-3 py-2 text-sm font-bold text-[var(--foreground)]">
+                  {groupedOrders[status].length}
+                </span>
+              </div>
             </div>
 
             <div className="space-y-4">
@@ -419,13 +469,13 @@ export function KitchenBoard({ initialOrders }: { initialOrders: Order[] }) {
                               onClick={() => changeStatus(order.id, step)}
                               disabled={loadingId === order.id}
                               className={cn(
-                                "rounded-2xl border px-2 py-3 text-[11px] font-bold uppercase tracking-[0.08em] transition-colors",
+                                "min-h-12 rounded-2xl border px-2 py-2 text-[10px] font-bold uppercase leading-4 tracking-[0.08em] transition-colors",
                                 order.status === step
                                   ? "border-[var(--brand)] bg-[var(--brand)] text-white"
                                   : "border-[var(--line)] bg-[var(--surface)] text-[var(--muted)] hover:border-[var(--brand)] hover:text-[var(--brand)]",
                               )}
                             >
-                              {orderStatusLabels[step]}
+                              {step === "EM_PREPARO" ? "Preparo" : orderStatusLabels[step]}
                             </button>
                           ))}
                         </div>

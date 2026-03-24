@@ -124,6 +124,7 @@ model Order {
   paymentLink           String?
   paymentCode           String?
   paymentConfirmedAt    DateTime?
+  kitchenClearedAt      DateTime?
   subtotal              Decimal       @db.Decimal(10, 2)
   deliveryFee           Decimal       @db.Decimal(10, 2) @default(0)
   estimatedDeliveryMin  Int?

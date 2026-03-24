@@ -72,6 +72,7 @@ type PersistedOrder = {
   paymentLink: string | null;
   paymentCode: string | null;
   paymentConfirmedAt: Date | null;
+  kitchenClearedAt: Date | null;
   subtotal: { toString(): string } | number;
   deliveryFee: { toString(): string } | number;
   estimatedDeliveryMin?: number | null;
@@ -117,6 +118,7 @@ function toOrder(params: {
   paymentLink?: string;
   paymentCode?: string;
   paymentConfirmedAt?: Date;
+  kitchenClearedAt?: Date;
   status?: OrderStatus;
   createdAt?: Date;
   updatedAt?: Date;
@@ -141,6 +143,7 @@ function toOrder(params: {
     paymentLink: params.paymentLink,
     paymentCode: params.paymentCode,
     paymentConfirmedAt: params.paymentConfirmedAt?.toISOString(),
+    kitchenClearedAt: params.kitchenClearedAt?.toISOString(),
     subtotal: params.subtotal,
     deliveryFee: params.deliveryFee,
     estimatedDeliveryMin: params.estimatedDeliveryMin,
@@ -240,6 +243,7 @@ function mapPersistedOrder(order: PersistedOrder): Order {
     paymentLink: order.paymentLink ?? undefined,
     paymentCode: order.paymentCode ?? undefined,
     paymentConfirmedAt: order.paymentConfirmedAt?.toISOString(),
+    kitchenClearedAt: order.kitchenClearedAt?.toISOString(),
     subtotal: Number(order.subtotal),
     deliveryFee: Number(order.deliveryFee),
     estimatedDeliveryMin: order.estimatedDeliveryMin ?? undefined,
@@ -337,7 +341,13 @@ export async function listOrders() {
 
 export async function listKitchenOrders() {
   if (!canUseDatabase()) {
-    return sortOrders(memoryOrders.filter((order) => order.paymentStatus === "PAGO"));
+    return sortOrders(
+      memoryOrders.filter(
+        (order) =>
+          order.paymentStatus === "PAGO" &&
+          !(order.status === "ENTREGUE" && order.kitchenClearedAt),
+      ),
+    );
   }
 
   const storeId = await getCurrentStoreId();
@@ -350,6 +360,10 @@ export async function listKitchenOrders() {
     where: {
       storeId,
       paymentStatus: "PAGO",
+      OR: [
+        { status: { not: "ENTREGUE" } },
+        { kitchenClearedAt: null },
+      ],
     },
     include: { items: true },
     orderBy: { orderNumber: "desc" },
@@ -436,6 +450,7 @@ export async function createOrder(params: {
       paymentExternalId: undefined,
       paymentLink: undefined,
       paymentCode,
+      kitchenClearedAt: undefined,
     });
 
     memoryOrders.unshift(order);
@@ -501,6 +516,7 @@ export async function createOrder(params: {
         paymentExternalId: null,
         paymentLink: null,
         paymentCode,
+        kitchenClearedAt: null,
         subtotal,
         deliveryFee,
         estimatedDeliveryMin: deliverySettings.estimatedDeliveryMin,
@@ -811,13 +827,19 @@ export async function updateOrderStatus(id: string, status: OrderStatus) {
     }
 
     order.status = status;
+    if (status !== "ENTREGUE") {
+      order.kitchenClearedAt = undefined;
+    }
     order.updatedAt = new Date().toISOString();
     return order;
   }
 
   const updatedOrder = await prisma.order.update({
     where: { id },
-    data: { status },
+    data: {
+      status,
+      ...(status !== "ENTREGUE" ? { kitchenClearedAt: null } : {}),
+    },
     include: { items: true },
   });
 
@@ -904,6 +926,41 @@ export async function markOrderAsPaid(id: string) {
   });
 
   return mapPersistedOrder(updatedOrder as PersistedOrder);
+}
+
+export async function clearKitchenDeliveredOrders() {
+  if (!canUseDatabase()) {
+    let cleared = 0;
+
+    for (const order of memoryOrders) {
+      if (order.status === "ENTREGUE" && !order.kitchenClearedAt) {
+        order.kitchenClearedAt = new Date().toISOString();
+        order.updatedAt = new Date().toISOString();
+        cleared += 1;
+      }
+    }
+
+    return { cleared };
+  }
+
+  const storeId = await getCurrentStoreId();
+
+  if (!storeId) {
+    throw new OrderFlowError("Loja principal nao encontrada.", 500);
+  }
+
+  const result = await prisma.order.updateMany({
+    where: {
+      storeId,
+      status: "ENTREGUE",
+      kitchenClearedAt: null,
+    },
+    data: {
+      kitchenClearedAt: new Date(),
+    },
+  });
+
+  return { cleared: result.count };
 }
 
 export async function confirmOrderPaymentByExternalId(externalId: string) {

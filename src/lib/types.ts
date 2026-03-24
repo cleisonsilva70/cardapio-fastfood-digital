@@ -71,6 +71,7 @@ export type Order = {
   paymentLink?: string;
   paymentCode?: string;
   paymentConfirmedAt?: string;
+  kitchenClearedAt?: string;
   subtotal: number;
   deliveryFee: number;
   estimatedDeliveryMin?: number;
