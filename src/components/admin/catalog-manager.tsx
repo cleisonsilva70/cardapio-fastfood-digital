@@ -480,6 +480,20 @@ export function CatalogManager() {
               depois produtos e promocoes, e por fim a entrega operacional com
               links e painel da cozinha.
             </p>
+            <div className="mt-5 flex flex-wrap gap-3">
+              {[
+                "Base pronta para replicar clientes",
+                "Operacao separada entre atendimento e cozinha",
+                "Edicao rapida de cardapio e banners",
+              ].map((item) => (
+                <span
+                  key={item}
+                  className="glass-pill inline-flex rounded-full px-4 py-2 text-xs font-semibold uppercase tracking-[0.12em] text-[var(--foreground)]"
+                >
+                  {item}
+                </span>
+              ))}
+            </div>
           </div>
 
           <div className="flex flex-wrap gap-3">

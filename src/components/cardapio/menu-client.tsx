@@ -33,14 +33,14 @@ export function MenuClient({ products }: { products: Product[] }) {
       />
 
       <div className="-mx-4 mt-8 overflow-x-auto px-4 pb-2 sm:mx-0 sm:px-0">
-        <div className="flex min-w-max gap-3">
+        <div className="glass-pill flex min-w-max gap-3 rounded-[28px] px-3 py-3">
         <button
           type="button"
           onClick={() => setActiveCategory("TODOS")}
           className={`rounded-full px-5 py-3 text-sm font-bold uppercase tracking-[0.12em] transition-colors ${
             activeCategory === "TODOS"
               ? "bg-[var(--brand)] text-white"
-              : "border border-[var(--line)] bg-white/75 text-[var(--foreground)]"
+              : "bg-white/78 text-[var(--foreground)]"
           }`}
         >
           Todos
@@ -53,7 +53,7 @@ export function MenuClient({ products }: { products: Product[] }) {
             className={`rounded-full px-5 py-3 text-sm font-bold uppercase tracking-[0.12em] transition-colors ${
               activeCategory === category
                 ? "bg-[var(--brand)] text-white"
-                : "border border-[var(--line)] bg-white/75 text-[var(--foreground)]"
+                : "bg-white/78 text-[var(--foreground)]"
             }`}
           >
             {categoryLabels[category]}
