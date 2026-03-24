@@ -7,13 +7,6 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-enum ProductCategory {
-  BURGERS
-  COMBOS
-  BEBIDAS
-  ADICIONAIS
-}
-
 enum OrderStatus {
   NOVO
   EM_PREPARO
@@ -83,6 +76,8 @@ model StoreBanner {
   imageUrl    String
   ctaLabel    String
   ctaHref     String?
+  ctaMode     String   @default("LINK")
+  ctaProductId String?
   active      Boolean  @default(true)
   displayOrder Int     @default(0)
   createdAt   DateTime @default(now())
@@ -97,7 +92,7 @@ model Product {
   description   String
   price         Decimal         @db.Decimal(10, 2)
   imageUrl      String
-  category      ProductCategory
+  category      String
   active        Boolean         @default(true)
   featured      Boolean         @default(false)
   displayOrder  Int             @default(0)

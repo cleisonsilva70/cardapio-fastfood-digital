@@ -2,16 +2,29 @@ import type {
   OrderStatus,
   PaymentMethod,
   PaymentStatus,
-  ProductCategory,
 } from "./types";
 import { getStoreConfig, getBrandingConfig } from "./white-label";
 
-export const categoryLabels: Record<ProductCategory, string> = {
+const knownCategoryLabels: Record<string, string> = {
   BURGERS: "Burgers",
   COMBOS: "Combos",
   BEBIDAS: "Bebidas",
   ADICIONAIS: "Adicionais",
 };
+
+export function formatCategoryLabel(category: string) {
+  const normalized = category.trim();
+
+  if (!normalized) {
+    return "Sem categoria";
+  }
+
+  if (knownCategoryLabels[normalized]) {
+    return knownCategoryLabels[normalized];
+  }
+
+  return normalized;
+}
 
 export const paymentLabels: Record<PaymentMethod, string> = {
   PIX: "Pix",

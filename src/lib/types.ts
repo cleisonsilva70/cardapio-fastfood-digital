@@ -1,4 +1,4 @@
-export type ProductCategory = "BURGERS" | "COMBOS" | "BEBIDAS" | "ADICIONAIS";
+export type ProductCategory = string;
 
 export type OrderStatus = "NOVO" | "EM_PREPARO" | "PRONTO" | "ENTREGUE";
 
@@ -26,6 +26,8 @@ export type PromoBanner = {
   imageUrl: string;
   ctaLabel: string;
   ctaHref?: string;
+  ctaMode?: "LINK" | "ADD_TO_CART";
+  ctaProductId?: string;
   active?: boolean;
 };
 
@@ -58,7 +60,7 @@ export type OrderItem = {
   id: string;
   productId?: string;
   productName: string;
-  category: ProductCategory;
+  category: string;
   unitPrice: number;
   quantity: number;
   subtotal: number;

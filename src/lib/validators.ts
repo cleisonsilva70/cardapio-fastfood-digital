@@ -58,7 +58,7 @@ export const adminProductSchema = z.object({
     .string()
     .trim()
     .refine(isImageReference, "Informe uma imagem valida para o produto."),
-  category: z.enum(["BURGERS", "COMBOS", "BEBIDAS", "ADICIONAIS"]),
+  category: z.string().trim().min(2, "Informe a categoria do produto."),
   featured: z.coerce.boolean().default(false),
   active: z.coerce.boolean().default(true),
 });
@@ -114,10 +114,28 @@ export const adminBannerSchema = z.object({
     .trim()
     .refine(isImageReference, "Informe uma imagem valida para o banner."),
   ctaLabel: z.string().min(2, "Informe o texto do botao."),
+  ctaMode: z.enum(["LINK", "ADD_TO_CART"]).default("LINK"),
   ctaHref: z
     .string()
     .trim()
     .refine((value) => !value || isBannerLink(value), "Informe um link valido para o botao.")
     .default("#cardapio"),
+  ctaProductId: z.string().trim().optional().default(""),
   active: z.coerce.boolean().default(true),
+}).superRefine((data, context) => {
+  if (data.ctaMode === "LINK" && !data.ctaHref) {
+    context.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ["ctaHref"],
+      message: "Informe o destino do botao.",
+    });
+  }
+
+  if (data.ctaMode === "ADD_TO_CART" && !data.ctaProductId) {
+    context.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ["ctaProductId"],
+      message: "Escolha o produto que o banner deve adicionar ao carrinho.",
+    });
+  }
 });

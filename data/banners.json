@@ -5,7 +5,8 @@
     "description": "Burger assinatura + fritas + bebida com visual de campanha para a home.",
     "imageUrl": "https://images.unsplash.com/photo-1513104890138-7c749659a591?auto=format&fit=crop&w=1200&q=80",
     "ctaLabel": "Pedir agora",
-    "ctaHref": "#cardapio"
+    "ctaHref": "#cardapio",
+    "ctaMode": "LINK"
   },
   {
     "id": "banner-smash-week",
@@ -13,6 +14,7 @@
     "description": "Perfeito para divulgar promoções, combos sazonais e destaques do cliente.",
     "imageUrl": "https://images.unsplash.com/photo-1568901346375-23c9450c58cd?auto=format&fit=crop&w=1200&q=80",
     "ctaLabel": "Ver destaque",
-    "ctaHref": "#cardapio"
+    "ctaHref": "#cardapio",
+    "ctaMode": "LINK"
   }
 ]

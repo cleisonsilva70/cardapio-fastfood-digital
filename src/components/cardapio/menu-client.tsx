@@ -3,19 +3,25 @@
 import { useMemo, useState } from "react";
 import { CartPanel } from "@/components/carrinho/cart-panel";
 import { SectionTitle } from "@/components/ui/section-title";
-import { categoryLabels } from "@/lib/constants";
-import type { Product, ProductCategory } from "@/lib/types";
+import { formatCategoryLabel } from "@/lib/constants";
+import type { Product } from "@/lib/types";
 import { useCartStore } from "@/store/cart-store";
 import { ProductCard } from "./product-card";
-
-const categories = Object.keys(categoryLabels) as ProductCategory[];
 
 export function MenuClient({ products }: { products: Product[] }) {
   const addItem = useCartStore((state) => state.addItem);
   const items = useCartStore((state) => state.items);
-  const [activeCategory, setActiveCategory] = useState<ProductCategory | "TODOS">(
-    "TODOS",
-  );
+  const [activeCategory, setActiveCategory] = useState<string>("TODOS");
+
+  const categories = useMemo(() => {
+    return Array.from(
+      new Set(
+        products
+          .map((product) => product.category.trim())
+          .filter(Boolean),
+      ),
+    );
+  }, [products]);
 
   const filteredProducts = useMemo(() => {
     if (activeCategory === "TODOS") {
@@ -59,7 +65,7 @@ export function MenuClient({ products }: { products: Product[] }) {
                   : "bg-white/78 text-[var(--foreground)]"
               }`}
             >
-              {categoryLabels[category]}
+              {formatCategoryLabel(category)}
             </button>
           ))}
         </div>

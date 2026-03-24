@@ -157,6 +157,8 @@ export async function getResolvedPromoBanners() {
     imageUrl: banner.imageUrl,
     ctaLabel: banner.ctaLabel,
     ctaHref: banner.ctaHref ?? "#cardapio",
+    ctaMode: (banner.ctaMode as "LINK" | "ADD_TO_CART" | undefined) ?? "LINK",
+    ctaProductId: banner.ctaProductId ?? undefined,
     active: banner.active,
   }));
 }

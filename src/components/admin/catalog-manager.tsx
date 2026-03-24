@@ -16,7 +16,7 @@ import {
   Store,
 } from "lucide-react";
 import { UploadField } from "@/components/admin/upload-field";
-import { categoryLabels, orderStatusLabels } from "@/lib/constants";
+import { formatCategoryLabel, orderStatusLabels } from "@/lib/constants";
 import { formatCurrency } from "@/lib/format";
 import type { OrderStatus, ProductCategory } from "@/lib/types";
 
@@ -38,9 +38,23 @@ type AdminBanner = {
   description: string;
   imageUrl: string;
   ctaLabel: string;
+  ctaMode: "LINK" | "ADD_TO_CART";
   ctaHref: string;
+  ctaProductId: string;
   active: boolean;
   displayOrder: number;
+};
+
+type BannerFormState = {
+  id: string;
+  title: string;
+  description: string;
+  imageUrl: string;
+  ctaLabel: string;
+  ctaMode: "LINK" | "ADD_TO_CART";
+  ctaHref: string;
+  ctaProductId: string;
+  active: boolean;
 };
 
 type AdminStoreSettings = {
@@ -90,18 +104,20 @@ const emptyProductForm = {
   description: "",
   price: "",
   imageUrl: "",
-  category: "BURGERS" as ProductCategory,
+  category: "Burgers" as ProductCategory,
   featured: false,
   active: true,
 };
 
-const emptyBannerForm = {
+const emptyBannerForm: BannerFormState = {
   id: "",
   title: "",
   description: "",
   imageUrl: "",
   ctaLabel: "",
+  ctaMode: "LINK",
   ctaHref: "#cardapio",
+  ctaProductId: "",
   active: true,
 };
 
@@ -303,10 +319,16 @@ export function CatalogManager() {
       return (
         product.name.toLowerCase().includes(term) ||
         product.description.toLowerCase().includes(term) ||
-        categoryLabels[product.category].toLowerCase().includes(term)
+        formatCategoryLabel(product.category).toLowerCase().includes(term)
       );
     });
   }, [productSearch, products]);
+
+  const availableCategories = useMemo(() => {
+    return Array.from(
+      new Set(products.map((product) => product.category.trim()).filter(Boolean)),
+    ).sort((left, right) => left.localeCompare(right, "pt-BR"));
+  }, [products]);
 
   const activeProductsCount = useMemo(
     () => products.filter((product) => product.active).length,
@@ -512,7 +534,9 @@ export function CatalogManager() {
             description: bannerForm.description,
             imageUrl: bannerForm.imageUrl,
             ctaLabel: bannerForm.ctaLabel,
+            ctaMode: bannerForm.ctaMode,
             ctaHref: bannerForm.ctaHref,
+            ctaProductId: bannerForm.ctaProductId,
             active: bannerForm.active,
           }),
         },
@@ -559,7 +583,9 @@ export function CatalogManager() {
         description: banner.description,
         imageUrl: banner.imageUrl,
         ctaLabel: banner.ctaLabel,
+        ctaMode: banner.ctaMode,
         ctaHref: banner.ctaHref,
+        ctaProductId: banner.ctaProductId,
         active: banner.active,
       });
     setActiveSection("banners");
@@ -1238,22 +1264,24 @@ export function CatalogManager() {
 
                 <label className="block space-y-2">
                   <span className="text-sm font-semibold">Categoria</span>
-                  <select
+                  <input
+                    required
+                    list="product-categories"
                     value={productForm.category}
                     onChange={(event) =>
                       setProductForm((current) => ({
                         ...current,
-                        category: event.target.value as ProductCategory,
+                        category: event.target.value,
                       }))
                     }
+                    placeholder="Ex.: Burgers, Pasteis, Sobremesas"
                     className="w-full rounded-2xl border border-[var(--line)] bg-white px-4 py-3"
-                  >
-                    {Object.entries(categoryLabels).map(([value, label]) => (
-                      <option key={value} value={value}>
-                        {label}
-                      </option>
+                  />
+                  <datalist id="product-categories">
+                    {availableCategories.map((category) => (
+                      <option key={category} value={category} />
                     ))}
-                  </select>
+                  </datalist>
                 </label>
               </div>
 
@@ -1380,7 +1408,7 @@ export function CatalogManager() {
                           {product.description}
                         </p>
                         <div className="mt-3 flex flex-wrap gap-3 text-sm text-[var(--muted)]">
-                          <span>{categoryLabels[product.category]}</span>
+                          <span>{formatCategoryLabel(product.category)}</span>
                           <span>{formatCurrency(product.price)}</span>
                         </div>
                       </div>
@@ -1464,6 +1492,48 @@ export function CatalogManager() {
                 />
               </label>
               <label className="block space-y-2">
+                <span className="text-sm font-semibold">Acao do botao</span>
+                <select
+                  value={bannerForm.ctaMode}
+                  onChange={(event) =>
+                    setBannerForm((current) => ({
+                      ...current,
+                      ctaMode: event.target.value as "LINK" | "ADD_TO_CART",
+                      ctaHref:
+                        event.target.value === "ADD_TO_CART"
+                          ? ""
+                          : current.ctaHref || "#cardapio",
+                    }))
+                  }
+                  className="w-full rounded-2xl border border-[var(--line)] bg-white px-4 py-3"
+                >
+                  <option value="LINK">Abrir link</option>
+                  <option value="ADD_TO_CART">Adicionar produto ao carrinho</option>
+                </select>
+              </label>
+              {bannerForm.ctaMode === "ADD_TO_CART" ? (
+                <label className="block space-y-2">
+                  <span className="text-sm font-semibold">Produto do banner</span>
+                  <select
+                    value={bannerForm.ctaProductId}
+                    onChange={(event) =>
+                      setBannerForm((current) => ({
+                        ...current,
+                        ctaProductId: event.target.value,
+                      }))
+                    }
+                    className="w-full rounded-2xl border border-[var(--line)] bg-white px-4 py-3"
+                  >
+                    <option value="">Selecione um produto</option>
+                    {products.map((product) => (
+                      <option key={product.id} value={product.id}>
+                        {product.name}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              ) : null}
+              <label className="block space-y-2">
                 <span className="text-sm font-semibold">Destino do botao</span>
                 <input
                   value={bannerForm.ctaHref}
@@ -1475,9 +1545,12 @@ export function CatalogManager() {
                   }
                   placeholder="#cardapio, /checkout ou https://..."
                   className="w-full rounded-2xl border border-[var(--line)] bg-white px-4 py-3"
+                  disabled={bannerForm.ctaMode === "ADD_TO_CART"}
                 />
                 <p className="text-xs leading-6 text-[var(--muted)]">
-                  Use <strong>#cardapio</strong> para rolar ate os produtos, <strong>/checkout</strong> para abrir o checkout, ou um link completo como <strong>https://wa.me/...</strong>.
+                  {bannerForm.ctaMode === "ADD_TO_CART"
+                    ? "Nesse modo, o banner adiciona direto o produto selecionado ao carrinho."
+                    : <>Use <strong>#cardapio</strong> para rolar ate os produtos, <strong>/checkout</strong> para abrir o checkout, ou um link completo como <strong>https://wa.me/...</strong>.</>}
                 </p>
               </label>
               <label className="inline-flex items-center gap-3 text-sm font-semibold">
@@ -1553,7 +1626,9 @@ export function CatalogManager() {
                           {banner.ctaLabel}
                         </p>
                         <p className="mt-1 break-all text-xs text-[var(--muted)]">
-                          {banner.ctaHref || "#cardapio"}
+                          {banner.ctaMode === "ADD_TO_CART"
+                            ? `Adiciona ao carrinho: ${products.find((product) => product.id === banner.ctaProductId)?.name ?? "Produto nao encontrado"}`
+                            : banner.ctaHref || "#cardapio"}
                         </p>
                       </div>
                       <button

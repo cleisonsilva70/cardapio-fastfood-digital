@@ -310,12 +310,12 @@ export async function listProducts() {
     id: product.id,
     name: product.name,
     description: product.description,
-    price: Number(product.price),
-    imageUrl: product.imageUrl,
-    category: product.category,
-    featured: product.featured,
-  }));
-}
+      price: Number(product.price),
+      imageUrl: product.imageUrl,
+      category: product.category,
+      featured: product.featured,
+    }));
+  }
 
 export async function listOrders() {
   if (!canUseDatabase()) {
@@ -566,12 +566,12 @@ export async function listAdminProducts() {
     id: item.id,
     name: item.name,
     description: item.description,
-    price: Number(item.price),
-    imageUrl: item.imageUrl,
-    category: item.category,
-    featured: item.featured,
-    active: item.active,
-    displayOrder: item.displayOrder,
+      price: Number(item.price),
+      imageUrl: item.imageUrl,
+      category: item.category,
+      featured: item.featured,
+      active: item.active,
+      displayOrder: item.displayOrder,
   }));
 }
 
@@ -581,7 +581,7 @@ export async function upsertAdminProduct(input: {
   description: string;
   price: number;
   imageUrl: string;
-  category: "BURGERS" | "COMBOS" | "BEBIDAS" | "ADICIONAIS";
+  category: string;
   featured: boolean;
   active: boolean;
 }) {
@@ -604,24 +604,24 @@ export async function upsertAdminProduct(input: {
         data: {
           name: input.name,
           description: input.description,
-          price: input.price,
-          imageUrl: input.imageUrl,
-          category: input.category,
-          featured: input.featured,
-          active: input.active,
-        },
+            price: input.price,
+            imageUrl: input.imageUrl,
+            category: input.category.trim(),
+            featured: input.featured,
+            active: input.active,
+          },
       })
     : await prisma.product.create({
         data: {
           storeId,
           name: input.name,
           description: input.description,
-          price: input.price,
-          imageUrl: input.imageUrl,
-          category: input.category,
-          featured: input.featured,
-          active: input.active,
-          displayOrder: displayOrder + 1,
+            price: input.price,
+            imageUrl: input.imageUrl,
+            category: input.category.trim(),
+            featured: input.featured,
+            active: input.active,
+            displayOrder: displayOrder + 1,
         },
       });
 
@@ -695,6 +695,8 @@ export async function getAdminStoreConfiguration() {
       imageUrl: banner.imageUrl,
       ctaLabel: banner.ctaLabel,
       ctaHref: banner.ctaHref ?? "#cardapio",
+      ctaMode: (banner.ctaMode as "LINK" | "ADD_TO_CART" | undefined) ?? "LINK",
+      ctaProductId: banner.ctaProductId ?? "",
       active: banner.active,
       displayOrder: banner.displayOrder,
     })),
@@ -770,7 +772,9 @@ export async function upsertAdminBanner(input: {
   description: string;
   imageUrl: string;
   ctaLabel: string;
+  ctaMode?: "LINK" | "ADD_TO_CART";
   ctaHref?: string;
+  ctaProductId?: string;
   active: boolean;
 }) {
   const storeId = await getCurrentStoreId();
@@ -794,7 +798,9 @@ export async function upsertAdminBanner(input: {
           description: input.description,
           imageUrl: input.imageUrl,
           ctaLabel: input.ctaLabel,
+          ctaMode: input.ctaMode ?? "LINK",
           ctaHref: input.ctaHref || "#cardapio",
+          ctaProductId: input.ctaMode === "ADD_TO_CART" ? input.ctaProductId || null : null,
           active: input.active,
         },
       })
@@ -805,7 +811,9 @@ export async function upsertAdminBanner(input: {
           description: input.description,
           imageUrl: input.imageUrl,
           ctaLabel: input.ctaLabel,
+          ctaMode: input.ctaMode ?? "LINK",
           ctaHref: input.ctaHref || "#cardapio",
+          ctaProductId: input.ctaMode === "ADD_TO_CART" ? input.ctaProductId || null : null,
           active: input.active,
           displayOrder: displayOrder + 1,
         },
@@ -818,6 +826,8 @@ export async function upsertAdminBanner(input: {
     imageUrl: banner.imageUrl,
     ctaLabel: banner.ctaLabel,
     ctaHref: banner.ctaHref ?? "#cardapio",
+    ctaMode: (banner.ctaMode as "LINK" | "ADD_TO_CART" | undefined) ?? "LINK",
+    ctaProductId: banner.ctaProductId ?? "",
     active: banner.active,
     displayOrder: banner.displayOrder,
   };

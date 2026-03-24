@@ -1,5 +1,6 @@
-import { PrismaClient, ProductCategory } from "@prisma/client";
+import { PrismaClient } from "@prisma/client";
 import branding from "../data/branding.json";
+import type { PromoBanner } from "../src/lib/types";
 import productsData from "../data/products.json";
 import store from "../data/store.json";
 
@@ -7,7 +8,7 @@ const prisma = new PrismaClient();
 
 const products = productsData.map((product, index) => ({
   ...product,
-  category: product.category as ProductCategory,
+  category: product.category,
   displayOrder: index + 1,
 }));
 
@@ -72,7 +73,7 @@ async function main() {
     },
   });
 
-  const banners = (await import("../data/banners.json")).default;
+  const banners = (await import("../data/banners.json")).default as PromoBanner[];
 
   for (const [index, banner] of banners.entries()) {
     await prisma.storeBanner.upsert({
@@ -83,6 +84,9 @@ async function main() {
         description: banner.description,
         imageUrl: banner.imageUrl,
         ctaLabel: banner.ctaLabel,
+        ctaMode: banner.ctaMode ?? "LINK",
+        ctaHref: banner.ctaHref ?? "#cardapio",
+        ctaProductId: banner.ctaProductId ?? null,
         active: true,
         displayOrder: index + 1,
       },
@@ -93,6 +97,9 @@ async function main() {
         description: banner.description,
         imageUrl: banner.imageUrl,
         ctaLabel: banner.ctaLabel,
+        ctaMode: banner.ctaMode ?? "LINK",
+        ctaHref: banner.ctaHref ?? "#cardapio",
+        ctaProductId: banner.ctaProductId ?? null,
         active: true,
         displayOrder: index + 1,
       },
