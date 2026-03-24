@@ -56,8 +56,6 @@ export async function createHostedPaymentSession(
     return null;
   }
 
-  const callbackBase = `${appBaseUrl}/pedido/${encodeURIComponent(params.orderNumberFormatted)}`;
-
   const response = await fetch(`${getAsaasBaseUrl()}/v3/checkouts`, {
     method: "POST",
     headers: {
@@ -68,11 +66,6 @@ export async function createHostedPaymentSession(
       billingTypes: [billingType],
       chargeTypes: ["DETACHED"],
       minutesToExpire: 60,
-      callback: {
-        successUrl: callbackBase,
-        cancelUrl: callbackBase,
-        expiredUrl: callbackBase,
-      },
       items: [
         ...params.items.map((item) => ({
           name: item.name,
