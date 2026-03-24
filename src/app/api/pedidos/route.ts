@@ -40,12 +40,19 @@ export async function POST(request: Request) {
     const result = await createOrder(parsed.data);
     return NextResponse.json(result, { status: 201 });
   } catch (error) {
+    console.error("POST /api/pedidos failed", error);
+
     if (error instanceof OrderFlowError) {
       return NextResponse.json({ error: error.message }, { status: error.statusCode });
     }
 
     return NextResponse.json(
-      { error: "Nao foi possivel registrar o pedido agora." },
+      {
+        error:
+          error instanceof Error
+            ? error.message
+            : "Nao foi possivel registrar o pedido agora.",
+      },
       { status: 500 },
     );
   }
