@@ -15,8 +15,6 @@ export async function StorefrontPage() {
     listStoreCategories(),
     getResolvedStoreConfig(),
   ]);
-  const featuredProducts = products.filter((product) => product.featured).slice(0, 3);
-  const spotlightProducts = featuredProducts.length > 0 ? featuredProducts : products.slice(0, 3);
 
   return (
     <main className="pb-16">
@@ -96,33 +94,6 @@ export async function StorefrontPage() {
                   Falar no WhatsApp
                 </Link>
               </div>
-
-              <div className="mt-8 grid gap-3 sm:grid-cols-3">
-                <div className="rounded-[22px] border border-[var(--line)] bg-white/72 px-4 py-4">
-                  <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-[var(--muted)]">
-                    Categorias
-                  </p>
-                  <p className="mt-2 text-2xl font-black text-[var(--brand)]">
-                    {categories.filter((category) => category.active).length}
-                  </p>
-                </div>
-                <div className="rounded-[22px] border border-[var(--line)] bg-white/72 px-4 py-4">
-                  <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-[var(--muted)]">
-                    Itens no cardapio
-                  </p>
-                  <p className="mt-2 text-2xl font-black text-[var(--brand)]">
-                    {products.length}
-                  </p>
-                </div>
-                <div className="rounded-[22px] border border-[var(--line)] bg-white/72 px-4 py-4">
-                  <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-[var(--muted)]">
-                    Destaques do dia
-                  </p>
-                  <p className="mt-2 text-2xl font-black text-[var(--brand)]">
-                    {spotlightProducts.length}
-                  </p>
-                </div>
-              </div>
             </div>
 
             <div className="dashboard-grid overflow-hidden rounded-[28px] border border-[var(--line)] bg-[linear-gradient(180deg,rgba(35,21,15,0.96),rgba(57,31,21,0.92))] p-5 text-white sm:p-6">
@@ -199,38 +170,6 @@ export async function StorefrontPage() {
       </section>
 
       <PromoBanners />
-
-      <section className="container-shell mt-10">
-        <div className="grid gap-4 lg:grid-cols-3">
-          {spotlightProducts.map((product) => (
-            <article
-              key={product.id}
-              className="panel-card luxury-section border border-[var(--line)] p-5"
-            >
-              <p className="text-[10px] font-semibold uppercase tracking-[0.24em] text-[var(--brand-strong)]">
-                Sugestao da casa
-              </p>
-              <h3 className="mt-3 text-2xl font-black uppercase leading-tight">
-                {product.name}
-              </h3>
-              <p className="mt-3 text-sm leading-7 text-[var(--muted)]">
-                {product.description}
-              </p>
-              <div className="mt-5 flex items-center justify-between gap-3">
-                <strong className="text-2xl font-black text-[var(--brand)]">
-                  {formatCurrency(product.price)}
-                </strong>
-                <Link
-                  href="#cardapio"
-                  className="glass-pill rounded-full px-4 py-3 text-xs font-bold uppercase tracking-[0.14em]"
-                >
-                  Ver no cardapio
-                </Link>
-              </div>
-            </article>
-          ))}
-        </div>
-      </section>
 
       <MenuClient products={products} categories={categories} />
     </main>
