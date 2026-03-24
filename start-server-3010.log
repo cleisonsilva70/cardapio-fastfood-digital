@@ -1,0 +1,19 @@
+
+> cardapio-fastfood-digital@0.1.0 start
+> next start
+
+▲ Next.js 16.2.1
+- Local:         http://localhost:3010
+- Network:       http://26.220.51.237:3010
+✓ Ready in 1103ms
+prisma:error Error in PostgreSQL connection: Error { kind: Closed, cause: None }
+prisma:error Error in PostgreSQL connection: Error { kind: Closed, cause: None }
+prisma:error Error in PostgreSQL connection: Error { kind: Closed, cause: None }
+prisma:error Error in PostgreSQL connection: Error { kind: Closed, cause: None }
+prisma:error Error in PostgreSQL connection: Error { kind: Closed, cause: None }
+ResponseAborted: 
+    at ignore-listed frames
+⨯ The requested resource isn't a valid image for /uploads/branding/f36755e1-ab12-434a-b613-505807cc65ca-gemini_generated_image_kqtib9kqtib9kqti.png received null
+⨯ The requested resource isn't a valid image for /uploads/branding/f36755e1-ab12-434a-b613-505807cc65ca-gemini_generated_image_kqtib9kqtib9kqti.png received null
+⨯ The requested resource isn't a valid image for /uploads/branding/f36755e1-ab12-434a-b613-505807cc65ca-gemini_generated_image_kqtib9kqtib9kqti.png received null
+⨯ The requested resource isn't a valid image for /uploads/branding/f36755e1-ab12-434a-b613-505807cc65ca-gemini_generated_image_kqtib9kqtib9kqti.png received null

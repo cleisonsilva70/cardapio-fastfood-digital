@@ -1,0 +1,80 @@
+@import "tailwindcss";
+
+:root {
+  --background: #f6efe5;
+  --surface: #fff9f2;
+  --surface-strong: #fff4e8;
+  --foreground: #23150f;
+  --muted: #73574c;
+  --line: rgba(70, 37, 17, 0.12);
+  --brand: #b8441f;
+  --brand-strong: #912f12;
+  --accent: #ffbf47;
+  --success: #27936c;
+  --danger: #b33f2f;
+  --shadow: 0 24px 60px rgba(74, 38, 19, 0.14);
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-surface: var(--surface);
+  --color-surface-strong: var(--surface-strong);
+  --color-foreground: var(--foreground);
+  --color-muted: var(--muted);
+  --color-line: var(--line);
+  --color-brand: var(--brand);
+  --color-brand-strong: var(--brand-strong);
+  --color-accent: var(--accent);
+  --color-success: var(--success);
+  --color-danger: var(--danger);
+  --font-sans: "Bahnschrift", "Trebuchet MS", "Segoe UI", sans-serif;
+  --font-display: "Arial Black", "Bahnschrift", sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  min-height: 100vh;
+  margin: 0;
+  color: var(--foreground);
+  font-family: var(--font-sans);
+  background:
+    radial-gradient(circle at top left, color-mix(in srgb, var(--accent) 26%, transparent), transparent 30%),
+    radial-gradient(circle at top right, color-mix(in srgb, var(--brand) 18%, transparent), transparent 26%),
+    linear-gradient(180deg, #fff4df 0%, #f7efe6 38%, #f2e6d8 100%);
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+::selection {
+  color: #fffaf4;
+  background: color-mix(in srgb, var(--brand) 78%, transparent);
+}
+
+.container-shell {
+  width: min(1180px, calc(100% - 32px));
+  margin-inline: auto;
+}
+
+.panel-card {
+  border: 1px solid var(--line);
+  background: linear-gradient(180deg, rgba(255, 252, 247, 0.95), rgba(255, 247, 238, 0.92));
+  box-shadow: var(--shadow);
+  border-radius: 28px;
+}

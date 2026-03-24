@@ -1,0 +1,42 @@
+{
+  "name": "Brasa Burger House",
+  "shortName": "Brasa Burger",
+  "slug": "brasa-burger-house",
+  "logoText": "BB",
+  "logoPath": "",
+  "whatsappNumber": "5584987330515",
+  "phoneDisplay": "(84) 98733-0515",
+  "address": "Rua Lindalva, 175",
+  "openingHours": "18:00 as 23:30",
+  "deliveryFee": 0,
+  "estimatedDeliveryMin": 30,
+  "estimatedDeliveryMax": 45,
+  "deliveryAreas": [
+    {
+      "id": "centro",
+      "name": "Centro",
+      "fee": 4.5,
+      "estimatedDeliveryMin": 30,
+      "estimatedDeliveryMax": 40,
+      "active": true
+    },
+    {
+      "id": "nova-descoberta",
+      "name": "Nova Descoberta",
+      "fee": 6,
+      "estimatedDeliveryMin": 35,
+      "estimatedDeliveryMax": 50,
+      "active": true
+    },
+    {
+      "id": "pitimbu",
+      "name": "Pitimbu",
+      "fee": 7.5,
+      "estimatedDeliveryMin": 40,
+      "estimatedDeliveryMax": 55,
+      "active": true
+    }
+  ],
+  "payments": ["PIX", "DINHEIRO", "CARTAO_CREDITO", "CARTAO_DEBITO"],
+  "kitchenPasswordHint": "Defina uma senha exclusiva para cada cliente antes da entrega."
+}

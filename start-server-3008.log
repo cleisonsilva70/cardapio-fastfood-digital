@@ -1,0 +1,10 @@
+
+> cardapio-fastfood-digital@0.1.0 start
+> next start
+
+▲ Next.js 16.2.1
+- Local:         http://localhost:3008
+- Network:       http://26.220.51.237:3008
+✓ Ready in 636ms
+prisma:error Error in PostgreSQL connection: Error { kind: Closed, cause: None }
+prisma:error Error in PostgreSQL connection: Error { kind: Closed, cause: None }

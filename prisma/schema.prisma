@@ -1,0 +1,158 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum ProductCategory {
+  BURGERS
+  COMBOS
+  BEBIDAS
+  ADICIONAIS
+}
+
+enum OrderStatus {
+  NOVO
+  EM_PREPARO
+  PRONTO
+  ENTREGUE
+}
+
+enum PaymentMethod {
+  PIX
+  DINHEIRO
+  CARTAO_CREDITO
+  CARTAO_DEBITO
+}
+
+enum PaymentStatus {
+  PENDENTE
+  PAGO
+  FALHOU
+  CANCELADO
+}
+
+model Store {
+  id          String          @id @default(cuid())
+  name        String
+  slug        String          @unique
+  status      String          @default("ACTIVE")
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+  settings    StoreSettings?
+  banners     StoreBanner[]
+  products    Product[]
+  orders      Order[]
+}
+
+model StoreSettings {
+  id                String   @id @default(cuid())
+  storeId           String   @unique
+  whatsappNumber    String
+  phoneDisplay      String
+  address           String
+  openingHours      String
+  defaultDeliveryFee Decimal @db.Decimal(10, 2) @default(0)
+  estimatedDeliveryMin Int   @default(30)
+  estimatedDeliveryMax Int   @default(45)
+  deliveryAreasJson  String?
+  shortName         String
+  logoText          String
+  logoPath          String?
+  primaryColor      String   @default("#b8441f")
+  secondaryColor    String   @default("#ffbf47")
+  accentColor       String   @default("#23150f")
+  surfaceColor      String   @default("#fff9f2")
+  eyebrow           String
+  heroTitle         String
+  heroDescription   String
+  tagline           String
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  store             Store    @relation(fields: [storeId], references: [id], onDelete: Cascade)
+}
+
+model StoreBanner {
+  id          String   @id @default(cuid())
+  storeId     String
+  title       String
+  description String
+  imageUrl    String
+  ctaLabel    String
+  active      Boolean  @default(true)
+  displayOrder Int     @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  store       Store    @relation(fields: [storeId], references: [id], onDelete: Cascade)
+}
+
+model Product {
+  id            String          @id @default(cuid())
+  storeId       String
+  name          String
+  description   String
+  price         Decimal         @db.Decimal(10, 2)
+  imageUrl      String
+  category      ProductCategory
+  active        Boolean         @default(true)
+  featured      Boolean         @default(false)
+  displayOrder  Int             @default(0)
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+  orderItems    OrderItem[]
+  store         Store           @relation(fields: [storeId], references: [id], onDelete: Cascade)
+}
+
+model Order {
+  id                    String        @id @default(cuid())
+  storeId               String
+  orderNumber           Int           @unique
+  orderNumberFormatted  String        @unique
+  customerName          String
+  phone                 String
+  address               String
+  houseNumber           String
+  deliveryArea          String?
+  reference             String?
+  paymentMethod         PaymentMethod
+  paymentStatus         PaymentStatus @default(PENDENTE)
+  paymentProvider       String?
+  paymentExternalId     String?
+  paymentLink           String?
+  paymentCode           String?
+  paymentConfirmedAt    DateTime?
+  subtotal              Decimal       @db.Decimal(10, 2)
+  deliveryFee           Decimal       @db.Decimal(10, 2) @default(0)
+  estimatedDeliveryMin  Int?
+  estimatedDeliveryMax  Int?
+  total                 Decimal       @db.Decimal(10, 2)
+  orderText             String
+  status                OrderStatus   @default(NOVO)
+  createdAt             DateTime      @default(now())
+  updatedAt             DateTime      @updatedAt
+  items                 OrderItem[]
+  store                 Store         @relation(fields: [storeId], references: [id], onDelete: Cascade)
+}
+
+model OrderItem {
+  id          String   @id @default(cuid())
+  orderId     String
+  productId   String?
+  productName String
+  category    String
+  unitPrice   Decimal  @db.Decimal(10, 2)
+  quantity    Int
+  subtotal    Decimal  @db.Decimal(10, 2)
+  createdAt   DateTime @default(now())
+  order       Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product     Product? @relation(fields: [productId], references: [id], onDelete: SetNull)
+}
+
+model OrderCounter {
+  key       String   @id
+  value     Int
+  updatedAt DateTime @updatedAt
+}

@@ -1,0 +1,4 @@
+ALTER TABLE "Order"
+ADD COLUMN IF NOT EXISTS "paymentProvider" TEXT,
+ADD COLUMN IF NOT EXISTS "paymentExternalId" TEXT,
+ADD COLUMN IF NOT EXISTS "paymentLink" TEXT;
