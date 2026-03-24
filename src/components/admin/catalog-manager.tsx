@@ -4,6 +4,8 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import type { LucideIcon } from "lucide-react";
 import {
+  Check,
+  Copy,
   ExternalLink,
   ImagePlus,
   LayoutDashboard,
@@ -231,6 +233,8 @@ export function CatalogManager() {
   const [historyStatusFilter, setHistoryStatusFilter] = useState<OrderStatus | "TODOS">(
     "TODOS",
   );
+  const [appOrigin, setAppOrigin] = useState("");
+  const [copiedKey, setCopiedKey] = useState("");
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [loading, setLoading] = useState(true);
@@ -278,6 +282,12 @@ export function CatalogManager() {
 
   useEffect(() => {
     void loadData();
+  }, []);
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      setAppOrigin(window.location.origin);
+    }
   }, []);
 
   const filteredProducts = useMemo(() => {
@@ -333,6 +343,74 @@ export function CatalogManager() {
       return matchesStatus && matchesSearch;
     });
   }, [historyStatusFilter, orderSearch, orders]);
+
+  const operationLinks = useMemo(
+    () => [
+      {
+        key: "vitrine",
+        label: "Vitrine principal",
+        href: `${appOrigin}/`,
+        note: "Link que vai para o cliente final.",
+      },
+      {
+        key: "checkout",
+        label: "Checkout",
+        href: `${appOrigin}/checkout`,
+        note: "Resumo do pedido e formulario de entrega.",
+      },
+      {
+        key: "atendimento",
+        label: "Painel de atendimento",
+        href: `${appOrigin}/atendimento`,
+        note: "Confirma pagamento e libera para a cozinha.",
+      },
+      {
+        key: "login",
+        label: "Login da cozinha",
+        href: `${appOrigin}/acesso-cozinha`,
+        note: "Entrada protegida para o proprietario.",
+      },
+      {
+        key: "cozinha",
+        label: "Painel da cozinha",
+        href: `${appOrigin}/cozinha`,
+        note: "Fluxo operacional dos pedidos apos login.",
+      },
+    ],
+    [appOrigin],
+  );
+
+  const clientDeliveryMessage = useMemo(() => {
+    const storeName = storeSettings?.name ?? "Sua hamburgueria";
+
+    return [
+      `Segue o acesso ao cardapio digital da ${storeName}:`,
+      "",
+      `Cardapio: ${appOrigin}/`,
+      `Atendimento interno: ${appOrigin}/atendimento`,
+      `Cozinha: ${appOrigin}/acesso-cozinha`,
+      "",
+      "Fluxo rapido:",
+      "- o cliente faz o pedido pelo cardapio",
+      "- o pedido chega no atendimento",
+      "- a equipe confirma o pagamento",
+      "- a cozinha recebe o pedido para preparo",
+      "",
+      "Senha da cozinha: [definir com o cliente]",
+    ].join("\n");
+  }, [appOrigin, storeSettings?.name]);
+
+  async function copyText(key: string, value: string) {
+    try {
+      await navigator.clipboard.writeText(value);
+      setCopiedKey(key);
+      window.setTimeout(() => {
+        setCopiedKey((current) => (current === key ? "" : current));
+      }, 1800);
+    } catch {
+      setError("Nao foi possivel copiar agora.");
+    }
+  }
 
   async function handleProductSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -1494,6 +1572,29 @@ export function CatalogManager() {
                 </div>
               ))}
             </div>
+
+            <div className="panel-subtle mt-6 p-5">
+              <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[var(--brand-strong)]">
+                Mensagem pronta
+              </p>
+              <p className="mt-2 text-sm leading-6 text-[var(--muted)]">
+                Copie este texto-base para entregar o projeto ao cliente com os links.
+              </p>
+              <textarea
+                readOnly
+                value={clientDeliveryMessage}
+                rows={12}
+                className="mt-4 w-full rounded-[22px] border border-[var(--line)] bg-white px-4 py-4 text-sm leading-6 text-[var(--foreground)]"
+              />
+              <button
+                type="button"
+                onClick={() => void copyText("client-message", clientDeliveryMessage)}
+                className="mt-4 inline-flex items-center justify-center gap-2 rounded-full bg-[linear-gradient(135deg,var(--brand),var(--brand-strong))] px-5 py-3 text-sm font-bold uppercase tracking-[0.14em] text-white shadow-[0_16px_26px_rgba(145,47,18,0.2)]"
+              >
+                {copiedKey === "client-message" ? <Check size={16} /> : <Copy size={16} />}
+                {copiedKey === "client-message" ? "Copiado" : "Copiar mensagem"}
+              </button>
+            </div>
           </section>
 
           <section className="panel-card luxury-section p-6 sm:p-8">
@@ -1505,49 +1606,41 @@ export function CatalogManager() {
             </h2>
 
             <div className="mt-8 grid gap-4">
-              {[
-                {
-                  label: "Vitrine principal",
-                  href: "/",
-                  note: "Link que vai para o cliente final.",
-                },
-                {
-                  label: "Checkout",
-                  href: "/checkout",
-                  note: "Resumo do pedido e formulario de entrega.",
-                },
-                {
-                  label: "Painel de atendimento",
-                  href: "/atendimento",
-                  note: "Confirma pagamento e libera para a cozinha.",
-                },
-                {
-                  label: "Login da cozinha",
-                  href: "/acesso-cozinha",
-                  note: "Entrada protegida para o proprietario.",
-                },
-                {
-                  label: "Painel da cozinha",
-                  href: "/cozinha",
-                  note: "Fluxo operacional dos pedidos apos login.",
-                },
-              ].map((item) => (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  target="_blank"
-                  className="rounded-[22px] border border-[var(--line)] bg-white/80 p-5 transition-colors hover:border-[var(--brand)]"
+              {operationLinks.map((item) => (
+                <div
+                  key={item.key}
+                  className="rounded-[22px] border border-[var(--line)] bg-white/80 p-5"
                 >
-                  <div className="flex items-center justify-between gap-4">
+                  <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
                     <div>
                       <p className="text-sm font-black uppercase">{item.label}</p>
                       <p className="mt-2 text-sm leading-6 text-[var(--muted)]">
                         {item.note}
                       </p>
+                      <p className="mt-3 break-all text-sm font-semibold text-[var(--brand)]">
+                        {item.href}
+                      </p>
                     </div>
-                    <ExternalLink size={18} className="text-[var(--brand)]" />
+                    <div className="flex flex-wrap gap-2">
+                      <button
+                        type="button"
+                        onClick={() => void copyText(item.key, item.href)}
+                        className="glass-pill inline-flex items-center justify-center gap-2 rounded-full px-4 py-3 text-sm font-bold uppercase tracking-[0.12em]"
+                      >
+                        {copiedKey === item.key ? <Check size={16} /> : <Copy size={16} />}
+                        {copiedKey === item.key ? "Copiado" : "Copiar"}
+                      </button>
+                      <Link
+                        href={item.href}
+                        target="_blank"
+                        className="inline-flex items-center justify-center gap-2 rounded-full bg-[linear-gradient(135deg,var(--brand),var(--brand-strong))] px-4 py-3 text-sm font-bold uppercase tracking-[0.12em] text-white"
+                      >
+                        Abrir
+                        <ExternalLink size={16} />
+                      </Link>
+                    </div>
                   </div>
-                </Link>
+                </div>
               ))}
             </div>
           </section>
