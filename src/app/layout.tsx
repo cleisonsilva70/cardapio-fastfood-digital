@@ -31,8 +31,11 @@ export default async function RootLayout({
   return (
     <html lang="pt-BR">
       <body style={getThemeStyleVariables(branding)}>
-        <BrandHeader />
-        {children}
+        <div className="relative isolate overflow-x-clip pb-10">
+          <div className="pointer-events-none absolute inset-x-0 top-0 z-[-1] h-[220px] bg-[linear-gradient(180deg,rgba(255,255,255,0.58),transparent)]" />
+          <BrandHeader />
+          {children}
+        </div>
       </body>
     </html>
   );
