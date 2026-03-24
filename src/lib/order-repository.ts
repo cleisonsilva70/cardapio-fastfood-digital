@@ -1,4 +1,3 @@
-import { createHostedPaymentSession } from "./asaas";
 import { prisma } from "./prisma";
 import { buildMockPaymentCode } from "./payment";
 import { buildOrderMessage, buildWhatsAppUrl } from "./whatsapp";
@@ -359,37 +358,27 @@ export async function listKitchenOrders() {
   return orders.map(mapPersistedOrder);
 }
 
-async function attachHostedPaymentIfAvailable(params: {
-  order: PersistedOrder;
-  checkout: CheckoutInput;
-}) {
-  const hostedPayment = await createHostedPaymentSession({
-    orderNumberFormatted: params.order.orderNumberFormatted,
-    checkout: params.checkout,
-    total: Number(params.order.total),
-  });
-
-  if (!hostedPayment) {
-    return {
-      order: mapPersistedOrder(params.order),
-      paymentUrl: undefined,
-    };
+export async function listPendingPaymentOrders() {
+  if (!canUseDatabase()) {
+    return sortOrders(memoryOrders.filter((order) => order.paymentStatus === "PENDENTE"));
   }
 
-  const updatedOrder = await prisma.order.update({
-    where: { id: params.order.id },
-    data: {
-      paymentProvider: hostedPayment.provider,
-      paymentExternalId: hostedPayment.externalId,
-      paymentLink: hostedPayment.paymentUrl,
+  const storeId = await getCurrentStoreId();
+
+  if (!storeId) {
+    return [];
+  }
+
+  const orders = (await prisma.order.findMany({
+    where: {
+      storeId,
+      paymentStatus: "PENDENTE",
     },
     include: { items: true },
-  });
+    orderBy: { orderNumber: "desc" },
+  })) as PersistedOrder[];
 
-  return {
-    order: mapPersistedOrder(updatedOrder as PersistedOrder),
-    paymentUrl: hostedPayment.paymentUrl,
-  };
+  return orders.map(mapPersistedOrder);
 }
 
 export async function createOrder(params: {
@@ -539,18 +528,9 @@ export async function createOrder(params: {
     currentStoreConfig.whatsappNumber,
   );
 
-  const paymentResult = await attachHostedPaymentIfAvailable({
-    order: persistedOrder,
-    checkout: {
-      ...params.checkout,
-      deliveryArea: deliverySettings.deliveryArea,
-    },
-  });
-
   return {
-    order: paymentResult.order,
+    order: mapPersistedOrder(persistedOrder),
     whatsappUrl,
-    paymentUrl: paymentResult.paymentUrl,
   };
 }
 
@@ -873,6 +853,45 @@ export async function confirmOrderPayment(id: string, paymentCode: string) {
 
   if (currentOrder.paymentCode !== paymentCode) {
     throw new OrderFlowError("Codigo de pagamento invalido.", 400);
+  }
+
+  const updatedOrder = await prisma.order.update({
+    where: { id },
+    data: {
+      paymentStatus: "PAGO",
+      paymentConfirmedAt: new Date(),
+    },
+    include: { items: true },
+  });
+
+  return mapPersistedOrder(updatedOrder as PersistedOrder);
+}
+
+export async function markOrderAsPaid(id: string) {
+  if (!canUseDatabase()) {
+    const order = memoryOrders.find((entry) => entry.id === id);
+
+    if (!order) {
+      throw new OrderFlowError("Pedido nao encontrado.", 404);
+    }
+
+    order.paymentStatus = "PAGO";
+    order.paymentConfirmedAt = new Date().toISOString();
+    order.updatedAt = new Date().toISOString();
+    return order;
+  }
+
+  const currentOrder = await prisma.order.findUnique({
+    where: { id },
+    include: { items: true },
+  });
+
+  if (!currentOrder) {
+    throw new OrderFlowError("Pedido nao encontrado.", 404);
+  }
+
+  if (currentOrder.paymentStatus === "PAGO") {
+    return mapPersistedOrder(currentOrder as PersistedOrder);
   }
 
   const updatedOrder = await prisma.order.update({

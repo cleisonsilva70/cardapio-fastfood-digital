@@ -492,6 +492,12 @@ export function CatalogManager() {
               <ExternalLink size={16} />
             </Link>
             <Link
+              href="/atendimento"
+              className="inline-flex items-center justify-center gap-2 rounded-full border border-[var(--line)] bg-white px-5 py-3 text-sm font-bold uppercase tracking-[0.14em]"
+            >
+              Abrir atendimento
+            </Link>
+            <Link
               href="/cozinha"
               className="inline-flex items-center justify-center gap-2 rounded-full bg-[var(--foreground)] px-5 py-3 text-sm font-bold uppercase tracking-[0.14em] text-white"
             >
@@ -1431,6 +1437,11 @@ export function CatalogManager() {
                   label: "Checkout",
                   href: "/checkout",
                   note: "Resumo do pedido e formulario de entrega.",
+                },
+                {
+                  label: "Painel de atendimento",
+                  href: "/atendimento",
+                  note: "Confirma pagamento e libera para a cozinha.",
                 },
                 {
                   label: "Login da cozinha",

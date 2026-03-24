@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
-import { CreditCard, QrCode } from "lucide-react";
+import { MessageCircleMore } from "lucide-react";
 import { CHECKOUT_DRAFT_STORAGE_KEY } from "@/lib/checkout-draft";
 import { paymentLabels } from "@/lib/constants";
 import { formatCurrency } from "@/lib/format";
@@ -96,8 +96,8 @@ export function ConfirmOrderPanel() {
       window.sessionStorage.removeItem(CHECKOUT_DRAFT_STORAGE_KEY);
       clearCart();
 
-      if (data.paymentUrl) {
-        window.location.href = data.paymentUrl as string;
+      if (data.whatsappUrl) {
+        window.location.href = data.whatsappUrl as string;
         return;
       }
 
@@ -150,8 +150,8 @@ export function ConfirmOrderPanel() {
         Confirmar e seguir para o pagamento
       </h1>
       <p className="mt-4 max-w-3xl text-base leading-7 text-[var(--muted)]">
-        O pedido sera criado com pagamento pendente. Ele so entra na cozinha
-        depois que o pagamento for confirmado e o WhatsApp for aberto.
+        O pedido sera criado e enviado para o WhatsApp da loja. Depois disso,
+        o atendimento confirma o pagamento e libera a entrada na cozinha.
       </p>
 
       <div className="mt-8 grid gap-6 lg:grid-cols-[1.05fr_0.95fr]">
@@ -213,12 +213,8 @@ export function ConfirmOrderPanel() {
           disabled={isSubmitting}
           className="inline-flex items-center justify-center gap-2 rounded-full bg-[var(--brand)] px-6 py-4 text-sm font-bold uppercase tracking-[0.16em] text-white transition-colors hover:bg-[var(--brand-strong)] disabled:cursor-not-allowed disabled:bg-[rgba(184,68,31,0.45)]"
         >
-          {draft.checkout.paymentMethod === "PIX" ? (
-            <QrCode size={18} />
-          ) : (
-            <CreditCard size={18} />
-          )}
-          {isSubmitting ? "Preparando pagamento..." : "Confirmar e ir para pagamento"}
+          <MessageCircleMore size={18} />
+          {isSubmitting ? "Enviando pedido..." : "Confirmar e enviar para WhatsApp"}
         </button>
         <button
           type="button"

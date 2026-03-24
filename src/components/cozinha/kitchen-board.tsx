@@ -266,6 +266,12 @@ export function KitchenBoard({ initialOrders }: { initialOrders: Order[] }) {
               Testar som
             </button>
             <Link
+              href="/atendimento"
+              className="rounded-full border border-[var(--line)] bg-white/70 px-5 py-3 text-sm font-bold uppercase tracking-[0.14em] text-[var(--foreground)] transition-colors hover:bg-white"
+            >
+              Abrir atendimento
+            </Link>
+            <Link
               href="/painel"
               className="rounded-full border border-[var(--line)] bg-white/70 px-5 py-3 text-sm font-bold uppercase tracking-[0.14em] text-[var(--foreground)] transition-colors hover:bg-white"
             >

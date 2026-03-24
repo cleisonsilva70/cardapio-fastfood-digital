@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { isOwnerAuthenticated } from "@/lib/auth";
 import {
   createOrder,
+  listPendingPaymentOrders,
   listKitchenOrders,
   listOrders,
   OrderFlowError,
@@ -18,7 +19,11 @@ export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const scope = searchParams.get("scope");
   const orders =
-    scope === "kitchen" ? await listKitchenOrders() : await listOrders();
+    scope === "kitchen"
+      ? await listKitchenOrders()
+      : scope === "atendimento"
+        ? await listPendingPaymentOrders()
+        : await listOrders();
 
   return NextResponse.json(orders);
 }
