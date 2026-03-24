@@ -714,11 +714,23 @@ export function CatalogManager() {
           <h2 className="mt-2 text-3xl font-black uppercase">
             Dados da hamburgueria e identidade visual
           </h2>
+          <p className="mt-3 max-w-3xl text-sm leading-7 text-[var(--muted)]">
+            Ajuste nome, contato, promessa principal da vitrine e identidade
+            visual da loja em um so lugar.
+          </p>
 
           {storeSettings ? (
             <form onSubmit={handleStoreSubmit} className="mt-8 space-y-8">
               <div className="grid gap-8 lg:grid-cols-2">
-                <section className="space-y-5">
+                <section className="panel-subtle space-y-5 p-5 sm:p-6">
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[var(--brand-strong)]">
+                      Dados principais
+                    </p>
+                    <h3 className="mt-2 text-xl font-black uppercase">
+                      Informacoes da loja
+                    </h3>
+                  </div>
                   <div className="grid gap-5 sm:grid-cols-2">
                     <label className="block space-y-2">
                       <span className="text-sm font-semibold">Nome da loja</span>
@@ -865,7 +877,15 @@ export function CatalogManager() {
                   </div>
                 </section>
 
-                <section className="space-y-5">
+                <section className="panel-subtle space-y-5 p-5 sm:p-6">
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[var(--brand-strong)]">
+                      Vitrine
+                    </p>
+                    <h3 className="mt-2 text-xl font-black uppercase">
+                      Hero, entrega e cores
+                    </h3>
+                  </div>
                   <label className="block space-y-2">
                     <span className="text-sm font-semibold">Hero title</span>
                     <input
@@ -1057,7 +1077,7 @@ export function CatalogManager() {
               <button
                 type="submit"
                 disabled={saving}
-                className="rounded-full bg-[var(--brand)] px-6 py-4 text-sm font-bold uppercase tracking-[0.16em] text-white transition-colors hover:bg-[var(--brand-strong)]"
+                className="rounded-full bg-[linear-gradient(135deg,var(--brand),var(--brand-strong))] px-6 py-4 text-sm font-bold uppercase tracking-[0.16em] text-white shadow-[0_18px_30px_rgba(145,47,18,0.2)] transition-transform duration-200 hover:-translate-y-0.5"
               >
                 {saving ? "Salvando..." : "Salvar configuracoes da loja"}
               </button>
@@ -1079,7 +1099,11 @@ export function CatalogManager() {
             <h2 className="mt-2 text-3xl font-black uppercase">
               Criar ou editar produto
             </h2>
-            <form onSubmit={handleProductSubmit} className="mt-8 space-y-5">
+            <p className="mt-3 text-sm leading-7 text-[var(--muted)]">
+              Monte a ficha do produto como ele deve aparecer para o cliente:
+              nome forte, descricao curta, preco e imagem.
+            </p>
+            <form onSubmit={handleProductSubmit} className="panel-subtle mt-8 space-y-5 p-5 sm:p-6">
               <label className="block space-y-2">
                 <span className="text-sm font-semibold">Nome</span>
                 <input
@@ -1194,7 +1218,7 @@ export function CatalogManager() {
                 <button
                   type="submit"
                   disabled={saving}
-                  className="rounded-full bg-[var(--brand)] px-6 py-4 text-sm font-bold uppercase tracking-[0.16em] text-white transition-colors hover:bg-[var(--brand-strong)]"
+                  className="rounded-full bg-[linear-gradient(135deg,var(--brand),var(--brand-strong))] px-6 py-4 text-sm font-bold uppercase tracking-[0.16em] text-white shadow-[0_18px_30px_rgba(145,47,18,0.2)] transition-transform duration-200 hover:-translate-y-0.5"
                 >
                   {saving
                     ? "Salvando..."
@@ -1206,7 +1230,7 @@ export function CatalogManager() {
                   <button
                     type="button"
                     onClick={() => setProductForm(emptyProductForm)}
-                    className="rounded-full border border-[var(--line)] bg-white/80 px-6 py-4 text-sm font-bold uppercase tracking-[0.16em]"
+                    className="glass-pill rounded-full px-6 py-4 text-sm font-bold uppercase tracking-[0.16em]"
                   >
                     Cancelar edicao
                   </button>
@@ -1253,7 +1277,7 @@ export function CatalogManager() {
                 filteredProducts.map((product) => (
                   <article
                     key={product.id}
-                    className="rounded-[22px] border border-[var(--line)] bg-white/80 p-4"
+                    className="luxury-section rounded-[24px] border border-[var(--line)] bg-white/80 p-4"
                   >
                     <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
                       <div>
@@ -1282,7 +1306,7 @@ export function CatalogManager() {
                       <button
                         type="button"
                         onClick={() => startEditProduct(product)}
-                        className="rounded-full border border-[var(--line)] bg-white px-4 py-3 text-sm font-bold uppercase tracking-[0.12em]"
+                        className="glass-pill rounded-full px-4 py-3 text-sm font-bold uppercase tracking-[0.12em]"
                       >
                         Editar
                       </button>
@@ -1304,8 +1328,11 @@ export function CatalogManager() {
             <h2 className="mt-2 text-3xl font-black uppercase">
               Criar ou editar banner
             </h2>
+            <p className="mt-3 text-sm leading-7 text-[var(--muted)]">
+              Use chamadas curtas, uma imagem forte e um texto de acao simples.
+            </p>
 
-            <form onSubmit={handleBannerSubmit} className="mt-8 space-y-5">
+            <form onSubmit={handleBannerSubmit} className="panel-subtle mt-8 space-y-5 p-5 sm:p-6">
               <label className="block space-y-2">
                 <span className="text-sm font-semibold">Titulo</span>
                 <input
@@ -1371,7 +1398,7 @@ export function CatalogManager() {
                 <button
                   type="submit"
                   disabled={saving}
-                  className="rounded-full bg-[var(--brand)] px-6 py-4 text-sm font-bold uppercase tracking-[0.16em] text-white transition-colors hover:bg-[var(--brand-strong)]"
+                  className="rounded-full bg-[linear-gradient(135deg,var(--brand),var(--brand-strong))] px-6 py-4 text-sm font-bold uppercase tracking-[0.16em] text-white shadow-[0_18px_30px_rgba(145,47,18,0.2)] transition-transform duration-200 hover:-translate-y-0.5"
                 >
                   {saving
                     ? "Salvando..."
@@ -1383,7 +1410,7 @@ export function CatalogManager() {
                   <button
                     type="button"
                     onClick={() => setBannerForm(emptyBannerForm)}
-                    className="rounded-full border border-[var(--line)] bg-white/80 px-6 py-4 text-sm font-bold uppercase tracking-[0.16em]"
+                    className="glass-pill rounded-full px-6 py-4 text-sm font-bold uppercase tracking-[0.16em]"
                   >
                     Cancelar edicao
                   </button>
@@ -1408,7 +1435,7 @@ export function CatalogManager() {
                 banners.map((banner) => (
                   <article
                     key={banner.id}
-                    className="rounded-[22px] border border-[var(--line)] bg-white/80 p-4"
+                    className="luxury-section rounded-[24px] border border-[var(--line)] bg-white/80 p-4"
                   >
                     <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
                       <div>
@@ -1430,7 +1457,7 @@ export function CatalogManager() {
                       <button
                         type="button"
                         onClick={() => startEditBanner(banner)}
-                        className="rounded-full border border-[var(--line)] bg-white px-4 py-3 text-sm font-bold uppercase tracking-[0.12em]"
+                        className="glass-pill rounded-full px-4 py-3 text-sm font-bold uppercase tracking-[0.12em]"
                       >
                         Editar
                       </button>
