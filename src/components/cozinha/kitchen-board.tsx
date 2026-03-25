@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Search, TabletSmartphone, Trash2, Volume2 } from "lucide-react";
+import { Search, Trash2, Volume2 } from "lucide-react";
 import {
   kitchenStatusActions,
   orderStatusLabels,
@@ -39,7 +39,6 @@ export function KitchenBoard({ initialOrders }: { initialOrders: Order[] }) {
   const [soundEnabled, setSoundEnabled] = useState(true);
   const [soundProfile, setSoundProfile] = useState<"restaurant" | "soft">("restaurant");
   const [search, setSearch] = useState("");
-  const [tabletMode, setTabletMode] = useState(false);
   const soundEnabledRef = useRef(true);
   const previousNewOrderIdsRef = useRef(
     new Set(
@@ -292,14 +291,6 @@ export function KitchenBoard({ initialOrders }: { initialOrders: Order[] }) {
             </p>
           </div>
           <div className="flex flex-col items-start gap-3 sm:flex-row sm:items-center sm:flex-wrap">
-            <div className="rounded-[26px] border border-white/10 bg-[linear-gradient(180deg,rgba(35,21,15,0.96),rgba(57,31,21,0.92))] px-5 py-4 text-white shadow-[0_20px_50px_rgba(35,21,15,0.24)]">
-              <p className="text-xs uppercase tracking-[0.24em] text-white/70">
-                Pedidos pagos
-              </p>
-              <strong className="mt-2 block text-3xl font-black">
-                {orders.length}
-              </strong>
-            </div>
             <div className="rounded-[26px] border border-[var(--line)] bg-white/80 px-5 py-4">
               <p className="text-xs uppercase tracking-[0.24em] text-[var(--muted)]">
                 Novos na fila
@@ -337,14 +328,6 @@ export function KitchenBoard({ initialOrders }: { initialOrders: Order[] }) {
             >
               <Volume2 size={16} />
               {soundProfile === "restaurant" ? "Som restaurante" : "Som suave"}
-            </button>
-            <button
-              type="button"
-              onClick={() => setTabletMode((current) => !current)}
-              className="glass-pill inline-flex items-center gap-2 rounded-full px-5 py-3 text-sm font-bold uppercase tracking-[0.14em] text-[var(--foreground)] transition-colors hover:bg-white"
-            >
-              <TabletSmartphone size={16} />
-              {tabletMode ? "Modo tablet ligado" : "Modo tablet padrao"}
             </button>
             <button
               type="button"
@@ -395,7 +378,7 @@ export function KitchenBoard({ initialOrders }: { initialOrders: Order[] }) {
             </div>
           </div>
         </div>
-        <div className={`grid grid-cols-4 gap-5 ${tabletMode ? "min-w-[1500px]" : "min-w-[1240px]"}`}>
+        <div className="grid min-w-[1240px] grid-cols-4 gap-5">
           {orderStatusSequence.map((status) => (
             <div
               key={status}
@@ -447,7 +430,7 @@ export function KitchenBoard({ initialOrders }: { initialOrders: Order[] }) {
                       key={order.id}
                       className={cn(
                         "luxury-section relative overflow-hidden rounded-[24px] border bg-white p-4 shadow-[0_12px_30px_rgba(46,23,12,0.06)]",
-                        tabletMode ? "min-h-[420px]" : "",
+                        "min-h-[420px]",
                         isFresh
                           ? "border-[var(--brand)] shadow-[0_0_0_2px_rgba(184,68,31,0.12)]"
                           : isDelayed
