@@ -81,17 +81,9 @@ export async function StorefrontPage() {
               <div className="mt-7 flex flex-col gap-3 sm:flex-row">
                 <Link
                   href="#cardapio"
-                  className="inline-flex min-h-13 items-center justify-center rounded-full bg-[linear-gradient(135deg,var(--brand),var(--brand-strong))] px-6 py-4 text-center text-sm font-bold uppercase tracking-[0.16em] text-white shadow-[0_18px_30px_rgba(145,47,18,0.22)]"
+                  className="inline-flex min-h-13 items-center justify-center rounded-full bg-[linear-gradient(135deg,var(--brand),var(--brand-strong))] px-7 py-4 text-center text-sm font-black uppercase tracking-[0.18em] text-[var(--surface)] shadow-[0_18px_30px_rgba(145,47,18,0.22)] ring-1 ring-[rgba(255,255,255,0.14)]"
                 >
                   Escolher produtos
-                </Link>
-                <Link
-                  href={`https://wa.me/${store.whatsappNumber}`}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="glass-pill inline-flex min-h-13 items-center justify-center rounded-full px-6 py-4 text-center text-sm font-bold uppercase tracking-[0.16em] text-[var(--foreground)]"
-                >
-                  Falar no WhatsApp
                 </Link>
               </div>
             </div>
