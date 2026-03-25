@@ -137,6 +137,7 @@ export function ServiceBoard({ initialOrders }: { initialOrders: Order[] }) {
   const [orders, setOrders] = useState(initialOrders);
   const [loadingId, setLoadingId] = useState<string | null>(null);
   const [boardError, setBoardError] = useState("");
+  const [boardSuccess, setBoardSuccess] = useState("");
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<"PENDENTES" | "PAGOS">("PENDENTES");
   const [paymentFilter, setPaymentFilter] = useState<PaymentMethod | "TODOS">("TODOS");
@@ -353,6 +354,7 @@ export function ServiceBoard({ initialOrders }: { initialOrders: Order[] }) {
   async function markAsPaid(orderId: string) {
     setLoadingId(orderId);
     setBoardError("");
+    setBoardSuccess("");
 
     try {
       const response = await fetch(`/api/pedidos/${orderId}/pagamento/manual`, {
@@ -362,12 +364,14 @@ export function ServiceBoard({ initialOrders }: { initialOrders: Order[] }) {
       if (!response.ok) {
         if (response.status === 401) {
           setBoardError("Sua sessao expirou. Faca login novamente.");
+          setBoardSuccess("");
           router.push("/acesso-cozinha");
           return;
         }
 
         const data = await response.json();
         setBoardError(data.error ?? "Nao foi possivel marcar o pedido como pago.");
+        setBoardSuccess("");
         return;
       }
 
@@ -381,8 +385,15 @@ export function ServiceBoard({ initialOrders }: { initialOrders: Order[] }) {
             : order,
         ),
       );
+      const releasedOrder = orders.find((order) => order.id === orderId);
+      setBoardSuccess(
+        releasedOrder
+          ? `Pedido ${releasedOrder.orderNumberFormatted} liberado para a cozinha.`
+          : "Pagamento confirmado e pedido liberado para a cozinha.",
+      );
     } catch {
       setBoardError("Falha ao confirmar o pagamento no atendimento.");
+      setBoardSuccess("");
     } finally {
       setLoadingId(null);
     }
@@ -452,6 +463,14 @@ export function ServiceBoard({ initialOrders }: { initialOrders: Order[] }) {
         <section className="panel-card p-5">
           <p className="rounded-2xl border border-[rgba(179,63,47,0.22)] bg-[rgba(179,63,47,0.08)] px-4 py-3 text-sm text-[var(--danger)]">
             {boardError}
+          </p>
+        </section>
+      ) : null}
+
+      {boardSuccess ? (
+        <section className="panel-card p-5">
+          <p className="rounded-2xl border border-[rgba(39,147,108,0.22)] bg-[rgba(39,147,108,0.08)] px-4 py-3 text-sm text-[var(--success)]">
+            {boardSuccess}
           </p>
         </section>
       ) : null}

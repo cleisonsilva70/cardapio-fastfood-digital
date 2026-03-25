@@ -81,6 +81,9 @@ export function UploadField({ label, scope, value, onChange }: UploadFieldProps)
             PNG, JPG, WEBP ou SVG com ate 4 MB.
           </span>
         </div>
+        <p className="text-xs leading-5 text-[var(--muted)]">
+          Para bases com muitos produtos e banners, prefira colar uma URL externa da imagem.
+        </p>
         {value ? (
           <div className="rounded-2xl border border-[var(--line)] bg-[var(--surface)] p-3">
             <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.12em] text-[var(--brand-strong)]">

@@ -6,6 +6,7 @@ import type { LucideIcon } from "lucide-react";
 import {
   Check,
   Copy,
+  Download,
   ExternalLink,
   ImagePlus,
   LayoutDashboard,
@@ -17,9 +18,13 @@ import {
   Trash2,
 } from "lucide-react";
 import { UploadField } from "@/components/admin/upload-field";
-import { formatCategoryLabel, orderStatusLabels } from "@/lib/constants";
-import { formatCurrency, formatDateTimeLabel } from "@/lib/format";
-import type { OrderStatus, ProductCategory, StoreCategory } from "@/lib/types";
+import { formatCategoryLabel, orderStatusLabels, paymentLabels } from "@/lib/constants";
+import {
+  formatCurrency,
+  formatDateTimeLabel,
+  parseDateInputValue,
+} from "@/lib/format";
+import type { OrderStatus, PaymentMethod, ProductCategory, StoreCategory } from "@/lib/types";
 
 type AdminProduct = {
   id: string;
@@ -98,7 +103,9 @@ type AdminOrder = {
   id: string;
   orderNumberFormatted: string;
   customerName: string;
+  phone: string;
   status: OrderStatus;
+  paymentMethod: PaymentMethod;
   paymentStatus: "PENDENTE" | "PAGO" | "FALHOU" | "CANCELADO";
   total: number;
   displayTime: string;
@@ -292,6 +299,11 @@ export function CatalogManager() {
   const [historyStatusFilter, setHistoryStatusFilter] = useState<OrderStatus | "TODOS">(
     "TODOS",
   );
+  const [historyPaymentFilter, setHistoryPaymentFilter] = useState<PaymentMethod | "TODOS">(
+    "TODOS",
+  );
+  const [historyStartDate, setHistoryStartDate] = useState("");
+  const [historyEndDate, setHistoryEndDate] = useState("");
   const [appOrigin, setAppOrigin] = useState("");
   const [copiedKey, setCopiedKey] = useState("");
   const [error, setError] = useState("");
@@ -414,19 +426,53 @@ export function CatalogManager() {
 
   const filteredOrderHistory = useMemo(() => {
     const term = orderSearch.trim().toLowerCase();
+    const start = historyStartDate ? parseDateInputValue(historyStartDate) : null;
+    const end = historyEndDate ? parseDateInputValue(historyEndDate) : null;
+
+    if (start) {
+      start.setHours(0, 0, 0, 0);
+    }
+
+    if (end) {
+      end.setHours(23, 59, 59, 999);
+    }
 
     return orders.filter((order) => {
       const matchesStatus =
         historyStatusFilter === "TODOS" || order.status === historyStatusFilter;
+      const matchesPayment =
+        historyPaymentFilter === "TODOS" || order.paymentMethod === historyPaymentFilter;
+      const createdAt = new Date(order.createdAt);
+      const matchesDate =
+        (!start || createdAt >= start) &&
+        (!end || createdAt <= end);
 
       const matchesSearch =
         !term ||
         order.customerName.toLowerCase().includes(term) ||
-        order.orderNumberFormatted.toLowerCase().includes(term);
+        order.orderNumberFormatted.toLowerCase().includes(term) ||
+        order.phone.toLowerCase().includes(term);
 
-      return matchesStatus && matchesSearch;
+      return matchesStatus && matchesPayment && matchesDate && matchesSearch;
     });
-  }, [historyStatusFilter, orderSearch, orders]);
+  }, [historyEndDate, historyPaymentFilter, historyStartDate, historyStatusFilter, orderSearch, orders]);
+
+  const historySummary = useMemo(() => {
+    const paid = filteredOrderHistory.filter((order) => order.paymentStatus === "PAGO");
+    const pending = filteredOrderHistory.filter((order) => order.paymentStatus === "PENDENTE");
+
+    return {
+      totalOrders: filteredOrderHistory.length,
+      paidOrders: paid.length,
+      pendingOrders: pending.length,
+      deliveredOrders: filteredOrderHistory.filter((order) => order.status === "ENTREGUE").length,
+      revenue: paid.reduce((acc, order) => acc + order.total, 0),
+      averageTicket:
+        paid.length > 0
+          ? paid.reduce((acc, order) => acc + order.total, 0) / paid.length
+          : 0,
+    };
+  }, [filteredOrderHistory]);
 
   const operationLinks = useMemo(
     () => [
@@ -731,8 +777,15 @@ export function CatalogManager() {
   }
 
   async function archiveAllOrderHistory() {
+    const selectedOrderIds = filteredOrderHistory.map((order) => order.id);
+
+    if (selectedOrderIds.length === 0) {
+      setError("Nao ha pedidos visiveis para arquivar nesse filtro.");
+      return;
+    }
+
     const confirmed = window.confirm(
-      "Isso vai arquivar todos os pedidos visiveis no historico atual. A numeracao dos pedidos sera mantida. Deseja continuar?",
+      `Isso vai arquivar ${historySummary.totalOrders} pedidos do filtro atual, com ${formatCurrency(historySummary.revenue)} em faturamento pago. A numeracao dos pedidos sera mantida. Deseja continuar?`,
     );
 
     if (!confirmed) {
@@ -746,6 +799,12 @@ export function CatalogManager() {
     try {
       const response = await fetch("/api/pedidos/reset", {
         method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          orderIds: selectedOrderIds,
+        }),
       });
       const data = await response.json();
 
@@ -757,6 +816,7 @@ export function CatalogManager() {
       await loadData();
       setOrderSearch("");
       setHistoryStatusFilter("TODOS");
+      setHistoryPaymentFilter("TODOS");
       setSuccess(
         data.cleared > 0
           ? `${data.cleared} pedidos arquivados com sucesso.`
@@ -766,7 +826,56 @@ export function CatalogManager() {
       setError("Falha ao arquivar todo o historico de pedidos.");
     } finally {
         setResettingOrders(false);
-      }
+    }
+  }
+
+  function exportFilteredOrdersCsv() {
+    if (filteredOrderHistory.length === 0) {
+      setError("Nao ha pedidos no filtro atual para exportar.");
+      return;
+    }
+
+    const rows = [
+      [
+        "pedido",
+        "cliente",
+        "telefone",
+        "status",
+        "pagamento_status",
+        "pagamento_metodo",
+        "total",
+        "data_hora",
+        "itens",
+      ],
+      ...filteredOrderHistory.map((order) => [
+        order.orderNumberFormatted,
+        order.customerName,
+        order.phone,
+        order.status,
+        order.paymentStatus,
+        paymentLabels[order.paymentMethod],
+        order.total.toFixed(2).replace(".", ","),
+        formatDateTimeLabel(new Date(order.createdAt)),
+        order.items.map((item) => `${item.quantity}x ${item.productName}`).join(" | "),
+      ]),
+    ];
+
+    const csv = rows
+      .map((row) =>
+        row
+          .map((value) => `"${String(value).replace(/"/g, '""')}"`)
+          .join(";"),
+      )
+      .join("\n");
+
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `historico-pedidos-${historyStartDate || "inicio"}-${historyEndDate || "fim"}.csv`;
+    link.click();
+    URL.revokeObjectURL(url);
+    setSuccess("Arquivo CSV exportado com sucesso.");
   }
 
   return (
@@ -2207,11 +2316,20 @@ export function CatalogManager() {
                 <button
                   type="button"
                   onClick={() => void archiveAllOrderHistory()}
-                  disabled={resettingOrders || orders.length === 0}
+                  disabled={resettingOrders || filteredOrderHistory.length === 0}
                   className="inline-flex items-center justify-center gap-2 rounded-full border border-[rgba(179,63,47,0.2)] bg-[rgba(179,63,47,0.08)] px-5 py-3 text-sm font-bold uppercase tracking-[0.14em] text-[var(--danger)] disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   <Trash2 size={16} />
                   {resettingOrders ? "Arquivando..." : "Arquivar historico"}
+                </button>
+                <button
+                  type="button"
+                  onClick={exportFilteredOrdersCsv}
+                  disabled={filteredOrderHistory.length === 0}
+                  className="glass-pill inline-flex items-center justify-center gap-2 rounded-full px-5 py-3 text-sm font-bold uppercase tracking-[0.14em] disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  <Download size={16} />
+                  Exportar CSV
                 </button>
                 <Link
                   href="/cozinha"
@@ -2222,8 +2340,38 @@ export function CatalogManager() {
               </div>
             </div>
 
-            <div className="mt-6 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-              <label className="relative block w-full max-w-md">
+            <div className="mt-6 grid gap-4 xl:grid-cols-[minmax(0,1fr)_auto] xl:items-end">
+              <div className="grid gap-4 lg:grid-cols-3">
+                <article className="rounded-[22px] border border-[var(--line)] bg-white/80 p-5">
+                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--brand-strong)]">
+                    Pedidos no filtro
+                  </p>
+                  <p className="mt-3 text-3xl font-black">{historySummary.totalOrders}</p>
+                </article>
+                <article className="rounded-[22px] border border-[var(--line)] bg-white/80 p-5">
+                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--brand-strong)]">
+                    Faturamento
+                  </p>
+                  <p className="mt-3 text-3xl font-black">{formatCurrency(historySummary.revenue)}</p>
+                </article>
+                <article className="rounded-[22px] border border-[var(--line)] bg-white/80 p-5">
+                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--brand-strong)]">
+                    Ticket medio
+                  </p>
+                  <p className="mt-3 text-3xl font-black">{formatCurrency(historySummary.averageTicket)}</p>
+                </article>
+              </div>
+
+              <div className="rounded-[22px] border border-[var(--line)] bg-white/80 p-4 text-sm leading-6 text-[var(--muted)]">
+                <p><strong className="text-[var(--foreground)]">Pagos:</strong> {historySummary.paidOrders}</p>
+                <p><strong className="text-[var(--foreground)]">Pendentes:</strong> {historySummary.pendingOrders}</p>
+                <p><strong className="text-[var(--foreground)]">Entregues:</strong> {historySummary.deliveredOrders}</p>
+              </div>
+            </div>
+
+            <div className="mt-6 flex flex-col gap-4">
+              <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_220px_220px]">
+                <label className="relative block w-full">
                 <Search
                   size={16}
                   className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-[var(--muted)]"
@@ -2231,12 +2379,28 @@ export function CatalogManager() {
                 <input
                   value={orderSearch}
                   onChange={(event) => setOrderSearch(event.target.value)}
-                  placeholder="Buscar por cliente ou numero do pedido"
+                  placeholder="Buscar por cliente, telefone ou numero do pedido"
                   className="w-full rounded-full border border-[var(--line)] bg-white py-3 pl-11 pr-4 text-sm"
                 />
-              </label>
+                </label>
 
-              <div className="flex flex-wrap gap-2">
+                <input
+                  type="date"
+                  value={historyStartDate}
+                  onChange={(event) => setHistoryStartDate(event.target.value)}
+                  className="rounded-full border border-[var(--line)] bg-white px-4 py-3 text-sm"
+                />
+
+                <input
+                  type="date"
+                  value={historyEndDate}
+                  onChange={(event) => setHistoryEndDate(event.target.value)}
+                  className="rounded-full border border-[var(--line)] bg-white px-4 py-3 text-sm"
+                />
+              </div>
+
+              <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
+                <div className="flex flex-wrap gap-2">
                 {(["TODOS", "NOVO", "EM_PREPARO", "PRONTO", "ENTREGUE"] as const).map(
                   (status) => (
                     <button
@@ -2257,6 +2421,28 @@ export function CatalogManager() {
                     </button>
                   ),
                 )}
+                </div>
+
+                <div className="flex flex-wrap gap-2">
+                  {(["TODOS", "PIX", "DINHEIRO", "CARTAO_CREDITO", "CARTAO_DEBITO"] as const).map(
+                    (paymentMethod) => (
+                      <button
+                        key={paymentMethod}
+                        type="button"
+                        onClick={() => setHistoryPaymentFilter(paymentMethod)}
+                        className={`rounded-full px-4 py-2 text-xs font-bold uppercase tracking-[0.14em] ${
+                          historyPaymentFilter === paymentMethod
+                            ? "bg-[var(--foreground)] text-white"
+                            : "glass-pill text-[var(--foreground)]"
+                        }`}
+                      >
+                        {paymentMethod === "TODOS"
+                          ? "Todos pagamentos"
+                          : paymentLabels[paymentMethod]}
+                      </button>
+                    ),
+                  )}
+                </div>
               </div>
             </div>
 
@@ -2286,7 +2472,7 @@ export function CatalogManager() {
                         </div>
                         <h3 className="mt-3 text-lg font-black">{order.customerName}</h3>
                         <p className="mt-1 text-sm text-[var(--muted)]">
-                          {order.displayTime}
+                          {formatDateTimeLabel(new Date(order.createdAt))}
                         </p>
                       </div>
 
@@ -2319,7 +2505,7 @@ export function CatalogManager() {
                         </p>
                         <p>
                           <strong className="text-[var(--foreground)]">Pagamento:</strong>{" "}
-                          {order.paymentStatus}
+                          {paymentLabels[order.paymentMethod]} | {order.paymentStatus}
                         </p>
                       </div>
                     </div>

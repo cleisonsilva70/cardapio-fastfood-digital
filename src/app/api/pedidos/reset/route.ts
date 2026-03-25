@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { isOwnerAuthenticated } from "@/lib/auth";
 import { clearAllOrdersHistory, OrderFlowError } from "@/lib/order-repository";
 
-export async function DELETE() {
+export async function DELETE(request: Request) {
   const isAuthenticated = await isOwnerAuthenticated();
 
   if (!isAuthenticated) {
@@ -10,7 +10,18 @@ export async function DELETE() {
   }
 
   try {
-    const result = await clearAllOrdersHistory();
+    let orderIds: string[] | undefined;
+
+    try {
+      const body = await request.json();
+      orderIds = Array.isArray(body?.orderIds)
+        ? body.orderIds.filter((value: unknown): value is string => typeof value === "string")
+        : undefined;
+    } catch {
+      orderIds = undefined;
+    }
+
+    const result = await clearAllOrdersHistory(orderIds);
     return NextResponse.json(result);
   } catch (error) {
     if (error instanceof OrderFlowError) {

@@ -1273,13 +1273,15 @@ export async function clearKitchenDeliveredOrders() {
   return { cleared: result.count };
 }
 
-export async function clearAllOrdersHistory() {
+export async function clearAllOrdersHistory(orderIds?: string[]) {
   if (!canUseDatabase()) {
     const archivedAt = new Date().toISOString();
     let cleared = 0;
 
     memoryOrders.forEach((order) => {
-      if (!order.archivedAt) {
+      const matchesSelection = !orderIds || orderIds.includes(order.id);
+
+      if (!order.archivedAt && matchesSelection) {
         order.archivedAt = archivedAt;
         cleared += 1;
       }
@@ -1299,6 +1301,13 @@ export async function clearAllOrdersHistory() {
     where: {
       storeId,
       archivedAt: null,
+      ...(orderIds?.length
+        ? {
+            id: {
+              in: orderIds,
+            },
+          }
+        : {}),
     },
     data: {
       archivedAt,
