@@ -6,7 +6,7 @@ import { useEffect, useMemo, useState } from "react";
 import { MessageCircleMore } from "lucide-react";
 import { CHECKOUT_DRAFT_STORAGE_KEY } from "@/lib/checkout-draft";
 import { paymentLabels } from "@/lib/constants";
-import { formatCurrency } from "@/lib/format";
+import { formatCashChangeFor, formatCurrency } from "@/lib/format";
 import type { PaymentMethod } from "@/lib/types";
 import { useCartStore } from "@/store/cart-store";
 
@@ -17,9 +17,10 @@ type DraftPayload = {
     address: string;
     houseNumber: string;
     deliveryArea?: string;
-      reference?: string;
-      customerNote?: string;
-      paymentMethod: PaymentMethod;
+    reference?: string;
+    customerNote?: string;
+    cashChangeFor?: string;
+    paymentMethod: PaymentMethod;
   };
   items: Array<{
     id: string;
@@ -205,6 +206,12 @@ export function ConfirmOrderPanel() {
               ["Referencia", draft.checkout.reference ?? "Sem referencia"],
               ["Observacao do pedido", draft.checkout.customerNote ?? "Sem observacao"],
               ["Pagamento", paymentLabels[draft.checkout.paymentMethod]],
+              [
+                "Troco para",
+                draft.checkout.paymentMethod === "DINHEIRO"
+                  ? formatCashChangeFor(draft.checkout.cashChangeFor) ?? "Sem troco"
+                  : "Nao se aplica",
+              ],
             ].map(([label, value]) => (
               <div key={label} className="rounded-[22px] border border-[rgba(70,37,17,0.07)] bg-white/75 px-4 py-3">
                 <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-[var(--brand-strong)]">

@@ -1,36 +1,58 @@
 import { z } from "zod";
 import { isImageReference } from "@/lib/image-reference";
 import { isBannerLink } from "@/lib/links";
+import { parseCurrencyInput } from "@/lib/format";
 
 const phoneDigitsSchema = z
   .string()
   .transform((value) => value.replace(/\D/g, ""))
   .pipe(z.string().min(10, "Informe um telefone valido.").max(11, "Telefone invalido."));
 
-export const checkoutSchema = z.object({
-  customerName: z
-    .string()
-    .trim()
-    .min(2, "Informe o nome do cliente."),
-  phone: phoneDigitsSchema,
-  address: z
-    .string()
-    .trim()
-    .min(5, "Informe o endereco."),
-  houseNumber: z
-    .string()
-    .trim()
-    .min(1, "Informe o numero da casa."),
-  deliveryArea: z.string().trim().optional(),
-  reference: z.string().trim().optional(),
-  customerNote: z.string().trim().max(240, "Use no maximo 240 caracteres na observacao.").optional(),
-  paymentMethod: z.enum([
-    "PIX",
-    "DINHEIRO",
-    "CARTAO_CREDITO",
-    "CARTAO_DEBITO",
-  ]),
-});
+export const checkoutSchema = z
+  .object({
+    customerName: z
+      .string()
+      .trim()
+      .min(2, "Informe o nome do cliente."),
+    phone: phoneDigitsSchema,
+    address: z
+      .string()
+      .trim()
+      .min(5, "Informe o endereco."),
+    houseNumber: z
+      .string()
+      .trim()
+      .min(1, "Informe o numero da casa."),
+    deliveryArea: z.string().trim().optional(),
+    reference: z.string().trim().optional(),
+    customerNote: z.string().trim().max(240, "Use no maximo 240 caracteres na observacao.").optional(),
+    cashChangeFor: z.string().trim().optional(),
+    paymentMethod: z.enum([
+      "PIX",
+      "DINHEIRO",
+      "CARTAO_CREDITO",
+      "CARTAO_DEBITO",
+    ]),
+  })
+  .superRefine((data, context) => {
+    if (data.paymentMethod !== "DINHEIRO") {
+      return;
+    }
+
+    if (!data.cashChangeFor) {
+      return;
+    }
+
+    const changeFor = parseCurrencyInput(data.cashChangeFor);
+
+    if (changeFor === null || changeFor <= 0) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["cashChangeFor"],
+        message: "Informe um valor valido para troco.",
+      });
+    }
+  });
 
 export const cartItemSchema = z.object({
   id: z.string(),

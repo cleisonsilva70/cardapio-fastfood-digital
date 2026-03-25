@@ -1,6 +1,11 @@
 import { paymentLabels } from "./constants";
 import { formatDeliveryEstimate } from "./delivery";
-import { formatCurrency, formatPhone, formatTimeLabel } from "./format";
+import {
+  formatCashChangeFor,
+  formatCurrency,
+  formatPhone,
+  formatTimeLabel,
+} from "./format";
 import type { CartItem, CheckoutInput } from "./types";
 
 export function buildOrderMessage(params: {
@@ -37,6 +42,11 @@ export function buildOrderMessage(params: {
     params.checkout.reference ? `Referencia: ${params.checkout.reference}` : null,
   ].filter((line): line is string => Boolean(line));
 
+  const cashChangeLabel =
+    params.checkout.paymentMethod === "DINHEIRO"
+      ? formatCashChangeFor(params.checkout.cashChangeFor)
+      : undefined;
+
   return [
     `*NOVO PEDIDO*`,
     `Pedido #${params.orderNumberFormatted}`,
@@ -59,6 +69,7 @@ export function buildOrderMessage(params: {
     params.checkout.customerNote ? "" : null,
     `*PAGAMENTO*`,
     paymentLabels[params.checkout.paymentMethod],
+    cashChangeLabel ? `Troco para: ${cashChangeLabel}` : null,
   ]
     .filter((line): line is string => Boolean(line))
     .join("\n");

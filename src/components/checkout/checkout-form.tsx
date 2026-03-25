@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { CHECKOUT_DRAFT_STORAGE_KEY } from "@/lib/checkout-draft";
 import { paymentLabels } from "@/lib/constants";
 import { formatDeliveryEstimate } from "@/lib/delivery";
-import { formatCurrency } from "@/lib/format";
+import { formatCashChangeFor, formatCurrency } from "@/lib/format";
 import type { DeliveryAreaRule, PaymentMethod } from "@/lib/types";
 import { checkoutSchema } from "@/lib/validators";
 import { useCartStore } from "@/store/cart-store";
@@ -40,6 +40,7 @@ export function CheckoutForm({
     deliveryArea: deliveryAreas[0]?.id ?? "",
     reference: "",
     customerNote: "",
+    cashChangeFor: "",
     paymentMethod: "PIX" as PaymentMethod,
   });
   const [error, setError] = useState("");
@@ -113,6 +114,8 @@ export function CheckoutForm({
       houseNumber: formData.houseNumber.trim(),
       reference: formData.reference.trim(),
       customerNote: formData.customerNote.trim(),
+      cashChangeFor:
+        formData.paymentMethod === "DINHEIRO" ? formData.cashChangeFor.trim() : "",
     });
 
     if (!parsedCheckout.success) {
@@ -278,6 +281,30 @@ export function CheckoutForm({
             </select>
           </label>
 
+          {formData.paymentMethod === "DINHEIRO" ? (
+            <label className="space-y-2">
+              <span className="text-sm font-semibold">Precisa de troco?</span>
+              <input
+                value={formData.cashChangeFor}
+                onChange={(event) => updateField("cashChangeFor", event.target.value)}
+                placeholder="Ex.: 50,00"
+                className={`w-full rounded-2xl border bg-white/88 px-4 py-3 outline-none transition-colors focus:border-[var(--brand)] ${
+                  fieldErrors.cashChangeFor
+                    ? "border-[var(--danger)]"
+                    : "border-[var(--line)]"
+                }`}
+              />
+              <p className="text-xs leading-5 text-[var(--muted)]">
+                Deixe em branco se nao precisar de troco.
+              </p>
+              {fieldErrors.cashChangeFor ? (
+                <p className="text-sm text-[var(--danger)]">
+                  {fieldErrors.cashChangeFor}
+                </p>
+              ) : null}
+            </label>
+          ) : null}
+
           <label className="space-y-2 sm:col-span-2">
             <span className="text-sm font-semibold">Rua ou avenida</span>
             <input
@@ -418,6 +445,12 @@ export function CheckoutForm({
             <span>{formatCurrency(total)}</span>
           </div>
         </div>
+
+        {formData.paymentMethod === "DINHEIRO" ? (
+          <p className="mt-4 text-sm leading-6 text-[var(--muted)]">
+            Troco: {formatCashChangeFor(formData.cashChangeFor) ?? "sem troco"}
+          </p>
+        ) : null}
 
         <p className="mt-4 text-sm leading-6 text-[var(--muted)]">
           Depois do envio, o atendimento confirma o pagamento e libera para a cozinha.

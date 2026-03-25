@@ -76,6 +76,7 @@ type PersistedOrder = {
   deliveryArea?: string | null;
   reference: string | null;
   customerNote?: string | null;
+  cashChangeFor?: string | null;
   paymentMethod: Order["paymentMethod"];
   paymentStatus: PaymentStatus;
   paymentProvider: string | null;
@@ -213,10 +214,11 @@ function toOrder(params: {
     phone: params.checkout.phone,
     address: params.checkout.address,
   houseNumber: params.checkout.houseNumber,
-  deliveryArea: params.checkout.deliveryArea,
-  reference: params.checkout.reference,
-  customerNote: params.checkout.customerNote,
-  paymentMethod: params.checkout.paymentMethod,
+    deliveryArea: params.checkout.deliveryArea,
+    reference: params.checkout.reference,
+    customerNote: params.checkout.customerNote,
+    cashChangeFor: params.checkout.cashChangeFor,
+    paymentMethod: params.checkout.paymentMethod,
     paymentStatus: params.paymentStatus ?? "PENDENTE",
     paymentProvider: params.paymentProvider,
     paymentExternalId: params.paymentExternalId,
@@ -346,6 +348,7 @@ function mapPersistedOrder(order: PersistedOrder): Order {
     deliveryArea: order.deliveryArea ?? undefined,
     reference: order.reference ?? undefined,
     customerNote: order.customerNote ?? undefined,
+    cashChangeFor: order.cashChangeFor ?? undefined,
     paymentMethod: order.paymentMethod,
     paymentStatus: order.paymentStatus,
     paymentProvider: order.paymentProvider ?? undefined,
@@ -636,10 +639,11 @@ export async function createOrder(params: {
         phone: params.checkout.phone,
         address: params.checkout.address,
         houseNumber: params.checkout.houseNumber,
-        deliveryArea: deliverySettings.deliveryArea,
-        reference: params.checkout.reference,
-        customerNote: params.checkout.customerNote,
-        paymentMethod: params.checkout.paymentMethod,
+          deliveryArea: deliverySettings.deliveryArea,
+          reference: params.checkout.reference,
+          customerNote: params.checkout.customerNote,
+          cashChangeFor: params.checkout.cashChangeFor?.trim() || null,
+          paymentMethod: params.checkout.paymentMethod,
         paymentStatus: "PENDENTE",
         paymentProvider: null,
         paymentExternalId: null,

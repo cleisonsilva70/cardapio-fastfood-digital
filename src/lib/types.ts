@@ -91,6 +91,7 @@ export type CheckoutInput = {
   deliveryArea?: string;
   reference?: string;
   customerNote?: string;
+  cashChangeFor?: string;
   paymentMethod: PaymentMethod;
 };
 
@@ -117,6 +118,7 @@ export type Order = {
   deliveryArea?: string;
   reference?: string;
   customerNote?: string;
+  cashChangeFor?: string;
   paymentMethod: PaymentMethod;
   paymentStatus: PaymentStatus;
   paymentProvider?: string;

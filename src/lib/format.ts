@@ -7,6 +7,39 @@ export function formatCurrency(value: number) {
   }).format(value);
 }
 
+export function parseCurrencyInput(value?: string | null) {
+  if (!value) {
+    return null;
+  }
+
+  const normalized = value
+    .trim()
+    .replace(/[^\d,.-]/g, "")
+    .replace(/\.(?=\d{3}(?:\D|$))/g, "")
+    .replace(",", ".");
+
+  if (!normalized) {
+    return null;
+  }
+
+  const parsed = Number(normalized);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+export function formatCashChangeFor(value?: string | null) {
+  if (!value) {
+    return undefined;
+  }
+
+  const parsed = parseCurrencyInput(value);
+
+  if (parsed === null) {
+    return value.trim() || undefined;
+  }
+
+  return formatCurrency(parsed);
+}
+
 export function formatOrderNumber(orderNumber: number) {
   return String(orderNumber).padStart(3, "0");
 }

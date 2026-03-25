@@ -136,6 +136,7 @@ model Order {
   deliveryArea          String?
   reference             String?
   customerNote          String?
+  cashChangeFor         String?
   paymentMethod         PaymentMethod
   paymentStatus         PaymentStatus @default(PENDENTE)
   paymentProvider       String?
