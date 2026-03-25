@@ -440,15 +440,21 @@ export function ServiceBoard({ initialOrders }: { initialOrders: Order[] }) {
       )
       .join("\n");
 
-    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const filename = `atendimento-${dateFilterMode.toLowerCase()}-${Date.now()}.csv`;
+    const blob = new Blob(["\uFEFF", csv], {
+      type: "application/vnd.ms-excel;charset=utf-8;",
+    });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
-    link.download = `atendimento-${dateFilterMode.toLowerCase()}-${Date.now()}.csv`;
+    link.setAttribute("download", filename);
+    link.style.display = "none";
+    document.body.appendChild(link);
     link.click();
+    document.body.removeChild(link);
     URL.revokeObjectURL(url);
     setBoardError("");
-    setBoardSuccess("Arquivo CSV exportado com sucesso.");
+    setBoardSuccess(`Arquivo ${filename} exportado com sucesso.`);
   }
 
   async function markAsPaid(orderId: string) {
