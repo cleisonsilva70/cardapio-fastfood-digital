@@ -180,7 +180,9 @@ export function KitchenBoard({ initialOrders }: { initialOrders: Order[] }) {
 
     return orderStatusSequence.reduce<Record<OrderStatus, Order[]>>(
       (acc, status) => {
-        acc[status] = visibleOrders.filter((order) => order.status === status);
+        acc[status] = visibleOrders
+          .filter((order) => order.status === status)
+          .sort((left, right) => left.orderNumber - right.orderNumber);
         return acc;
       },
       {
