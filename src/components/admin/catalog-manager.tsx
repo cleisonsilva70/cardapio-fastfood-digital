@@ -6,7 +6,6 @@ import type { LucideIcon } from "lucide-react";
 import {
   Check,
   Copy,
-  Download,
   ExternalLink,
   ImagePlus,
   LayoutDashboard,
@@ -15,16 +14,11 @@ import {
   Search,
   ShoppingBag,
   Store,
-  Trash2,
 } from "lucide-react";
 import { UploadField } from "@/components/admin/upload-field";
-import { formatCategoryLabel, orderStatusLabels, paymentLabels } from "@/lib/constants";
-import {
-  formatCurrency,
-  formatDateTimeLabel,
-  parseDateInputValue,
-} from "@/lib/format";
-import type { OrderStatus, PaymentMethod, ProductCategory, StoreCategory } from "@/lib/types";
+import { formatCategoryLabel } from "@/lib/constants";
+import { formatCurrency, formatDateTimeLabel } from "@/lib/format";
+import type { ProductCategory, StoreCategory } from "@/lib/types";
 
 type AdminProduct = {
   id: string;
@@ -97,24 +91,6 @@ type AdminStoreSettings = {
   secondaryColor: string;
   accentColor: string;
   surfaceColor: string;
-};
-
-type AdminOrder = {
-  id: string;
-  orderNumberFormatted: string;
-  customerName: string;
-  phone: string;
-  status: OrderStatus;
-  paymentMethod: PaymentMethod;
-  paymentStatus: "PENDENTE" | "PAGO" | "FALHOU" | "CANCELADO";
-  total: number;
-  displayTime: string;
-  createdAt: string;
-  items: Array<{
-    id: string;
-    productName: string;
-    quantity: number;
-  }>;
 };
 
 type AdminCategory = StoreCategory;
@@ -288,43 +264,30 @@ export function CatalogManager() {
   const [products, setProducts] = useState<AdminProduct[]>([]);
   const [banners, setBanners] = useState<AdminBanner[]>([]);
   const [categories, setCategories] = useState<AdminCategory[]>([]);
-  const [orders, setOrders] = useState<AdminOrder[]>([]);
   const [storeSettings, setStoreSettings] = useState<AdminStoreSettings | null>(null);
   const [productForm, setProductForm] = useState(emptyProductForm);
   const [bannerForm, setBannerForm] = useState(emptyBannerForm);
   const [categoryForm, setCategoryForm] = useState(emptyCategoryForm);
   const [activeSection, setActiveSection] = useState<PanelSection>("overview");
   const [productSearch, setProductSearch] = useState("");
-  const [orderSearch, setOrderSearch] = useState("");
-  const [historyStatusFilter, setHistoryStatusFilter] = useState<OrderStatus | "TODOS">(
-    "TODOS",
-  );
-  const [historyPaymentFilter, setHistoryPaymentFilter] = useState<PaymentMethod | "TODOS">(
-    "TODOS",
-  );
-  const [historyStartDate, setHistoryStartDate] = useState("");
-  const [historyEndDate, setHistoryEndDate] = useState("");
   const [appOrigin, setAppOrigin] = useState("");
   const [copiedKey, setCopiedKey] = useState("");
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [resettingOrders, setResettingOrders] = useState(false);
 
   async function loadData() {
     setLoading(true);
     setError("");
 
     try {
-      const [productsResponse, storeResponse, ordersResponse] = await Promise.all([
+      const [productsResponse, storeResponse] = await Promise.all([
         fetch("/api/admin/products", { cache: "no-store" }),
         fetch("/api/admin/store", { cache: "no-store" }),
-        fetch("/api/pedidos", { cache: "no-store" }),
       ]);
       const productsData = await productsResponse.json();
       const storeData = await storeResponse.json();
-      const ordersData = await ordersResponse.json();
 
       if (!productsResponse.ok) {
         setError(productsData.error ?? "Nao foi possivel carregar os produtos.");
@@ -336,16 +299,10 @@ export function CatalogManager() {
         return;
       }
 
-      if (!ordersResponse.ok) {
-        setError(ordersData.error ?? "Nao foi possivel carregar o historico.");
-        return;
-      }
-
       setProducts(productsData);
       setStoreSettings(storeData.store);
       setBanners(storeData.banners);
       setCategories(storeData.categories ?? []);
-      setOrders(ordersData);
     } catch {
       setError("Falha ao carregar os dados do painel.");
     } finally {
@@ -423,56 +380,6 @@ export function CatalogManager() {
     () => banners.filter((banner) => banner.active).length,
     [banners],
   );
-
-  const filteredOrderHistory = useMemo(() => {
-    const term = orderSearch.trim().toLowerCase();
-    const start = historyStartDate ? parseDateInputValue(historyStartDate) : null;
-    const end = historyEndDate ? parseDateInputValue(historyEndDate) : null;
-
-    if (start) {
-      start.setHours(0, 0, 0, 0);
-    }
-
-    if (end) {
-      end.setHours(23, 59, 59, 999);
-    }
-
-    return orders.filter((order) => {
-      const matchesStatus =
-        historyStatusFilter === "TODOS" || order.status === historyStatusFilter;
-      const matchesPayment =
-        historyPaymentFilter === "TODOS" || order.paymentMethod === historyPaymentFilter;
-      const createdAt = new Date(order.createdAt);
-      const matchesDate =
-        (!start || createdAt >= start) &&
-        (!end || createdAt <= end);
-
-      const matchesSearch =
-        !term ||
-        order.customerName.toLowerCase().includes(term) ||
-        order.orderNumberFormatted.toLowerCase().includes(term) ||
-        order.phone.toLowerCase().includes(term);
-
-      return matchesStatus && matchesPayment && matchesDate && matchesSearch;
-    });
-  }, [historyEndDate, historyPaymentFilter, historyStartDate, historyStatusFilter, orderSearch, orders]);
-
-  const historySummary = useMemo(() => {
-    const paid = filteredOrderHistory.filter((order) => order.paymentStatus === "PAGO");
-    const pending = filteredOrderHistory.filter((order) => order.paymentStatus === "PENDENTE");
-
-    return {
-      totalOrders: filteredOrderHistory.length,
-      paidOrders: paid.length,
-      pendingOrders: pending.length,
-      deliveredOrders: filteredOrderHistory.filter((order) => order.status === "ENTREGUE").length,
-      revenue: paid.reduce((acc, order) => acc + order.total, 0),
-      averageTicket:
-        paid.length > 0
-          ? paid.reduce((acc, order) => acc + order.total, 0) / paid.length
-          : 0,
-    };
-  }, [filteredOrderHistory]);
 
   const operationLinks = useMemo(
     () => [
@@ -774,108 +681,6 @@ export function CatalogManager() {
     setActiveSection("banners");
     setSuccess("");
     setError("");
-  }
-
-  async function archiveAllOrderHistory() {
-    const selectedOrderIds = filteredOrderHistory.map((order) => order.id);
-
-    if (selectedOrderIds.length === 0) {
-      setError("Nao ha pedidos visiveis para arquivar nesse filtro.");
-      return;
-    }
-
-    const confirmed = window.confirm(
-      `Isso vai arquivar ${historySummary.totalOrders} pedidos do filtro atual, com ${formatCurrency(historySummary.revenue)} em faturamento pago. A numeracao dos pedidos sera mantida. Deseja continuar?`,
-    );
-
-    if (!confirmed) {
-      return;
-    }
-
-    setResettingOrders(true);
-    setError("");
-    setSuccess("");
-
-    try {
-      const response = await fetch("/api/pedidos/reset", {
-        method: "DELETE",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          orderIds: selectedOrderIds,
-        }),
-      });
-      const data = await response.json();
-
-      if (!response.ok) {
-        setError(data.error ?? "Nao foi possivel arquivar o historico de pedidos.");
-        return;
-      }
-
-      await loadData();
-      setOrderSearch("");
-      setHistoryStatusFilter("TODOS");
-      setHistoryPaymentFilter("TODOS");
-      setSuccess(
-        data.cleared > 0
-          ? `${data.cleared} pedidos arquivados com sucesso.`
-          : "Nao havia pedidos ativos para arquivar.",
-      );
-    } catch {
-      setError("Falha ao arquivar todo o historico de pedidos.");
-    } finally {
-        setResettingOrders(false);
-    }
-  }
-
-  function exportFilteredOrdersCsv() {
-    if (filteredOrderHistory.length === 0) {
-      setError("Nao ha pedidos no filtro atual para exportar.");
-      return;
-    }
-
-    const rows = [
-      [
-        "pedido",
-        "cliente",
-        "telefone",
-        "status",
-        "pagamento_status",
-        "pagamento_metodo",
-        "total",
-        "data_hora",
-        "itens",
-      ],
-      ...filteredOrderHistory.map((order) => [
-        order.orderNumberFormatted,
-        order.customerName,
-        order.phone,
-        order.status,
-        order.paymentStatus,
-        paymentLabels[order.paymentMethod],
-        order.total.toFixed(2).replace(".", ","),
-        formatDateTimeLabel(new Date(order.createdAt)),
-        order.items.map((item) => `${item.quantity}x ${item.productName}`).join(" | "),
-      ]),
-    ];
-
-    const csv = rows
-      .map((row) =>
-        row
-          .map((value) => `"${String(value).replace(/"/g, '""')}"`)
-          .join(";"),
-      )
-      .join("\n");
-
-    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = `historico-pedidos-${historyStartDate || "inicio"}-${historyEndDate || "fim"}.csv`;
-    link.click();
-    URL.revokeObjectURL(url);
-    setSuccess("Arquivo CSV exportado com sucesso.");
   }
 
   return (
@@ -2303,215 +2108,30 @@ export function CatalogManager() {
           </section>
 
           <section className="panel-card luxury-section p-6 sm:p-8 xl:col-span-2">
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.24em] text-[var(--brand-strong)]">
-                  Historico
-                </p>
-                <h2 className="mt-2 text-3xl font-black uppercase">
-                  Historico completo de pedidos
-                </h2>
-              </div>
-              <div className="flex flex-col gap-3 sm:flex-row">
-                <button
-                  type="button"
-                  onClick={() => void archiveAllOrderHistory()}
-                  disabled={resettingOrders || filteredOrderHistory.length === 0}
-                  className="inline-flex items-center justify-center gap-2 rounded-full border border-[rgba(179,63,47,0.2)] bg-[rgba(179,63,47,0.08)] px-5 py-3 text-sm font-bold uppercase tracking-[0.14em] text-[var(--danger)] disabled:cursor-not-allowed disabled:opacity-50"
-                >
-                  <Trash2 size={16} />
-                  {resettingOrders ? "Arquivando..." : "Arquivar historico"}
-                </button>
-                <button
-                  type="button"
-                  onClick={exportFilteredOrdersCsv}
-                  disabled={filteredOrderHistory.length === 0}
-                  className="glass-pill inline-flex items-center justify-center gap-2 rounded-full px-5 py-3 text-sm font-bold uppercase tracking-[0.14em] disabled:cursor-not-allowed disabled:opacity-50"
-                >
-                  <Download size={16} />
-                  Exportar CSV
-                </button>
-                <Link
-                  href="/cozinha"
-                  className="inline-flex items-center justify-center rounded-full border border-[var(--line)] bg-white px-5 py-3 text-sm font-bold uppercase tracking-[0.14em]"
-                >
-                  Abrir painel da cozinha
-                </Link>
-              </div>
-            </div>
-
-            <div className="mt-6 grid gap-4 xl:grid-cols-[minmax(0,1fr)_auto] xl:items-end">
-              <div className="grid gap-4 lg:grid-cols-3">
-                <article className="rounded-[22px] border border-[var(--line)] bg-white/80 p-5">
-                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--brand-strong)]">
-                    Pedidos no filtro
-                  </p>
-                  <p className="mt-3 text-3xl font-black">{historySummary.totalOrders}</p>
-                </article>
-                <article className="rounded-[22px] border border-[var(--line)] bg-white/80 p-5">
-                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--brand-strong)]">
-                    Faturamento
-                  </p>
-                  <p className="mt-3 text-3xl font-black">{formatCurrency(historySummary.revenue)}</p>
-                </article>
-                <article className="rounded-[22px] border border-[var(--line)] bg-white/80 p-5">
-                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--brand-strong)]">
-                    Ticket medio
-                  </p>
-                  <p className="mt-3 text-3xl font-black">{formatCurrency(historySummary.averageTicket)}</p>
-                </article>
-              </div>
-
-              <div className="rounded-[22px] border border-[var(--line)] bg-white/80 p-4 text-sm leading-6 text-[var(--muted)]">
-                <p><strong className="text-[var(--foreground)]">Pagos:</strong> {historySummary.paidOrders}</p>
-                <p><strong className="text-[var(--foreground)]">Pendentes:</strong> {historySummary.pendingOrders}</p>
-                <p><strong className="text-[var(--foreground)]">Entregues:</strong> {historySummary.deliveredOrders}</p>
-              </div>
-            </div>
-
-            <div className="mt-6 flex flex-col gap-4">
-              <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_220px_220px]">
-                <label className="relative block w-full">
-                <Search
-                  size={16}
-                  className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-[var(--muted)]"
-                />
-                <input
-                  value={orderSearch}
-                  onChange={(event) => setOrderSearch(event.target.value)}
-                  placeholder="Buscar por cliente, telefone ou numero do pedido"
-                  className="w-full rounded-full border border-[var(--line)] bg-white py-3 pl-11 pr-4 text-sm"
-                />
-                </label>
-
-                <input
-                  type="date"
-                  value={historyStartDate}
-                  onChange={(event) => setHistoryStartDate(event.target.value)}
-                  className="rounded-full border border-[var(--line)] bg-white px-4 py-3 text-sm"
-                />
-
-                <input
-                  type="date"
-                  value={historyEndDate}
-                  onChange={(event) => setHistoryEndDate(event.target.value)}
-                  className="rounded-full border border-[var(--line)] bg-white px-4 py-3 text-sm"
-                />
-              </div>
-
-              <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
-                <div className="flex flex-wrap gap-2">
-                {(["TODOS", "NOVO", "EM_PREPARO", "PRONTO", "ENTREGUE"] as const).map(
-                  (status) => (
-                    <button
-                      key={status}
-                      type="button"
-                      onClick={() => setHistoryStatusFilter(status)}
-                      className={`rounded-full px-4 py-2 text-xs font-bold uppercase tracking-[0.14em] ${
-                        historyStatusFilter === status
-                          ? "bg-[var(--brand)] text-white"
-                          : "glass-pill text-[var(--foreground)]"
-                      }`}
-                    >
-                      {status === "TODOS"
-                        ? "Todos"
-                        : status === "EM_PREPARO"
-                          ? "Em preparo"
-                          : orderStatusLabels[status]}
-                    </button>
-                  ),
-                )}
-                </div>
-
-                <div className="flex flex-wrap gap-2">
-                  {(["TODOS", "PIX", "DINHEIRO", "CARTAO_CREDITO", "CARTAO_DEBITO"] as const).map(
-                    (paymentMethod) => (
-                      <button
-                        key={paymentMethod}
-                        type="button"
-                        onClick={() => setHistoryPaymentFilter(paymentMethod)}
-                        className={`rounded-full px-4 py-2 text-xs font-bold uppercase tracking-[0.14em] ${
-                          historyPaymentFilter === paymentMethod
-                            ? "bg-[var(--foreground)] text-white"
-                            : "glass-pill text-[var(--foreground)]"
-                        }`}
-                      >
-                        {paymentMethod === "TODOS"
-                          ? "Todos pagamentos"
-                          : paymentLabels[paymentMethod]}
-                      </button>
-                    ),
-                  )}
-                </div>
-              </div>
-            </div>
-
-            <div className="mt-6 space-y-4">
-              {filteredOrderHistory.length === 0 ? (
-                <div className="rounded-[22px] border border-dashed border-[var(--line)] bg-white/60 p-5 text-sm text-[var(--muted)]">
-                  Nenhum pedido encontrado com esse filtro.
-                </div>
-              ) : (
-                filteredOrderHistory.map((order) => (
-                  <article
-                    key={order.id}
-                    className="rounded-[22px] border border-[var(--line)] bg-white/80 p-5"
-                  >
-                    <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-                      <div>
-                        <div className="flex flex-wrap items-center gap-2">
-                          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--brand-strong)]">
-                            Pedido {order.orderNumberFormatted}
-                          </p>
-                          <span className="rounded-full bg-[var(--surface-strong)] px-3 py-1.5 text-[11px] font-bold uppercase tracking-[0.12em]">
-                            {orderStatusLabels[order.status]}
-                          </span>
-                          <span className="rounded-full bg-white px-3 py-1.5 text-[11px] font-bold uppercase tracking-[0.12em] text-[var(--muted)]">
-                            {order.paymentStatus}
-                          </span>
-                        </div>
-                        <h3 className="mt-3 text-lg font-black">{order.customerName}</h3>
-                        <p className="mt-1 text-sm text-[var(--muted)]">
-                          {formatDateTimeLabel(new Date(order.createdAt))}
-                        </p>
-                      </div>
-
-                      <div className="rounded-[18px] bg-[var(--surface)] px-4 py-3 text-right">
-                        <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--muted)]">
-                          Total
-                        </p>
-                        <strong className="mt-1 block text-lg text-[var(--brand)]">
-                          {formatCurrency(order.total)}
-                        </strong>
-                      </div>
-                    </div>
-
-                    <div className="mt-4 grid gap-4 lg:grid-cols-[1fr_220px]">
-                      <div className="space-y-2 text-sm text-[var(--muted)]">
-                        {order.items.map((item) => (
-                          <p key={item.id}>
-                            {item.quantity}x {item.productName}
-                          </p>
-                        ))}
-                      </div>
-                      <div className="rounded-[20px] border border-[var(--line)] bg-[var(--surface)] px-4 py-4 text-sm leading-6 text-[var(--muted)]">
-                        <p>
-                          <strong className="text-[var(--foreground)]">Itens:</strong>{" "}
-                          {order.items.length}
-                        </p>
-                        <p>
-                          <strong className="text-[var(--foreground)]">Status:</strong>{" "}
-                          {orderStatusLabels[order.status]}
-                        </p>
-                        <p>
-                          <strong className="text-[var(--foreground)]">Pagamento:</strong>{" "}
-                          {paymentLabels[order.paymentMethod]} | {order.paymentStatus}
-                        </p>
-                      </div>
-                    </div>
-                  </article>
-                ))
-              )}
+            <p className="text-xs font-semibold uppercase tracking-[0.24em] text-[var(--brand-strong)]">
+              Operacao
+            </p>
+            <h2 className="mt-2 text-3xl font-black uppercase">
+              Historico e fechamento agora ficam no atendimento
+            </h2>
+            <p className="mt-4 max-w-3xl text-sm leading-7 text-[var(--muted)]">
+              Como o dono da hamburgueria nao acessa este painel, toda a parte operacional
+              de historico, exportacao e arquivamento foi levada para o
+              atendimento.
+            </p>
+            <div className="mt-6 flex flex-wrap gap-3">
+              <Link
+                href="/atendimento"
+                className="inline-flex items-center justify-center rounded-full bg-[linear-gradient(135deg,var(--brand),var(--brand-strong))] px-5 py-3 text-sm font-bold uppercase tracking-[0.14em] text-white"
+              >
+                Abrir atendimento
+              </Link>
+              <Link
+                href="/cozinha"
+                className="glass-pill inline-flex items-center justify-center rounded-full px-5 py-3 text-sm font-bold uppercase tracking-[0.14em]"
+              >
+                Abrir cozinha
+              </Link>
             </div>
           </section>
         </div>

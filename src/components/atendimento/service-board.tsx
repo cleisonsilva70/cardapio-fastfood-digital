@@ -3,10 +3,11 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { CheckCircle2, Search, Volume2 } from "lucide-react";
+import { CheckCircle2, Download, Search, Trash2, Volume2 } from "lucide-react";
 import {
   formatCurrency,
   formatDateInputValue,
+  formatDateTimeLabel,
   formatMonthInputValue,
   formatYearValue,
   parseDateInputValue,
@@ -351,6 +352,105 @@ export function ServiceBoard({ initialOrders }: { initialOrders: Order[] }) {
     return Math.max(0, Math.round((Date.now() - new Date(createdAt).getTime()) / 60000));
   }
 
+  async function archiveVisibleOrders() {
+    if (filteredOrders.length === 0) {
+      setBoardError("Nao ha pedidos visiveis para arquivar nesse filtro.");
+      setBoardSuccess("");
+      return;
+    }
+
+    const confirmed = window.confirm(
+      `Isso vai arquivar ${filteredOrders.length} pedidos visiveis no atendimento. Deseja continuar?`,
+    );
+
+    if (!confirmed) {
+      return;
+    }
+
+    setBoardError("");
+    setBoardSuccess("");
+
+    try {
+      const response = await fetch("/api/pedidos/reset", {
+        method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          orderIds: filteredOrders.map((order) => order.id),
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        setBoardError(data.error ?? "Nao foi possivel arquivar os pedidos desse filtro.");
+        return;
+      }
+
+      const visibleOrderIds = new Set(filteredOrders.map((order) => order.id));
+      setOrders((current) => current.filter((order) => !visibleOrderIds.has(order.id)));
+      setBoardSuccess(
+        data.cleared > 0
+          ? `${data.cleared} pedidos arquivados no atendimento.`
+          : "Nao havia pedidos visiveis para arquivar.",
+      );
+    } catch {
+      setBoardError("Falha ao arquivar os pedidos visiveis.");
+    }
+  }
+
+  function exportVisibleOrdersCsv() {
+    if (filteredOrders.length === 0) {
+      setBoardError("Nao ha pedidos visiveis para exportar.");
+      setBoardSuccess("");
+      return;
+    }
+
+    const rows = [
+      [
+        "pedido",
+        "cliente",
+        "telefone",
+        "status",
+        "pagamento_status",
+        "pagamento_metodo",
+        "total",
+        "data_hora",
+        "itens",
+      ],
+      ...filteredOrders.map((order) => [
+        order.orderNumberFormatted,
+        order.customerName,
+        order.phone,
+        order.status,
+        order.paymentStatus,
+        paymentLabels[order.paymentMethod],
+        order.total.toFixed(2).replace(".", ","),
+        formatDateTimeLabel(new Date(order.createdAt)),
+        order.items.map((item) => `${item.quantity}x ${item.productName}`).join(" | "),
+      ]),
+    ];
+
+    const csv = rows
+      .map((row) =>
+        row
+          .map((value) => `"${String(value).replace(/"/g, '""')}"`)
+          .join(";"),
+      )
+      .join("\n");
+
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `atendimento-${dateFilterMode.toLowerCase()}-${Date.now()}.csv`;
+    link.click();
+    URL.revokeObjectURL(url);
+    setBoardError("");
+    setBoardSuccess("Arquivo CSV exportado com sucesso.");
+  }
+
   async function markAsPaid(orderId: string) {
     setLoadingId(orderId);
     setBoardError("");
@@ -627,7 +727,7 @@ export function ServiceBoard({ initialOrders }: { initialOrders: Order[] }) {
       </section>
 
       <section className="grid gap-5 xl:grid-cols-2">
-        <div className="xl:col-span-2 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+        <div className="xl:col-span-2 flex flex-col gap-4">
           <div className="flex w-full flex-col gap-4">
             <label className="relative block w-full max-w-md">
               <Search
@@ -689,6 +789,26 @@ export function ServiceBoard({ initialOrders }: { initialOrders: Order[] }) {
                 ),
               )}
             </div>
+          </div>
+          <div className="flex flex-wrap gap-3">
+            <button
+              type="button"
+              onClick={exportVisibleOrdersCsv}
+              disabled={filteredOrders.length === 0}
+              className="glass-pill inline-flex items-center justify-center gap-2 rounded-full px-5 py-3 text-sm font-bold uppercase tracking-[0.14em] disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              <Download size={16} />
+              Exportar CSV
+            </button>
+            <button
+              type="button"
+              onClick={() => void archiveVisibleOrders()}
+              disabled={filteredOrders.length === 0}
+              className="inline-flex items-center justify-center gap-2 rounded-full border border-[rgba(179,63,47,0.2)] bg-[rgba(179,63,47,0.08)] px-5 py-3 text-sm font-bold uppercase tracking-[0.14em] text-[var(--danger)] disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              <Trash2 size={16} />
+              Arquivar filtro
+            </button>
           </div>
         </div>
         {filteredOrders.length === 0 ? (
