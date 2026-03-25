@@ -125,6 +125,7 @@ export type Order = {
   paymentCode?: string;
   paymentConfirmedAt?: string;
   kitchenClearedAt?: string;
+  archivedAt?: string;
   subtotal: number;
   deliveryFee: number;
   estimatedDeliveryMin?: number;

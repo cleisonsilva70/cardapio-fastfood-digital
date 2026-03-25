@@ -730,9 +730,9 @@ export function CatalogManager() {
     setError("");
   }
 
-  async function resetAllOrderHistory() {
+  async function archiveAllOrderHistory() {
     const confirmed = window.confirm(
-      "Isso vai apagar todo o historico de pedidos e reiniciar a numeracao. Deseja continuar?",
+      "Isso vai arquivar todos os pedidos visiveis no historico atual. A numeracao dos pedidos sera mantida. Deseja continuar?",
     );
 
     if (!confirmed) {
@@ -750,23 +750,23 @@ export function CatalogManager() {
       const data = await response.json();
 
       if (!response.ok) {
-        setError(data.error ?? "Nao foi possivel limpar o historico de pedidos.");
+        setError(data.error ?? "Nao foi possivel arquivar o historico de pedidos.");
         return;
       }
 
-      setOrders([]);
+      await loadData();
       setOrderSearch("");
       setHistoryStatusFilter("TODOS");
       setSuccess(
         data.cleared > 0
-          ? `${data.cleared} pedidos removidos do historico com sucesso.`
-          : "Historico de pedidos ja estava vazio.",
+          ? `${data.cleared} pedidos arquivados com sucesso.`
+          : "Nao havia pedidos ativos para arquivar.",
       );
     } catch {
-      setError("Falha ao limpar todo o historico de pedidos.");
+      setError("Falha ao arquivar todo o historico de pedidos.");
     } finally {
-      setResettingOrders(false);
-    }
+        setResettingOrders(false);
+      }
   }
 
   return (
@@ -2206,12 +2206,12 @@ export function CatalogManager() {
               <div className="flex flex-col gap-3 sm:flex-row">
                 <button
                   type="button"
-                  onClick={() => void resetAllOrderHistory()}
+                  onClick={() => void archiveAllOrderHistory()}
                   disabled={resettingOrders || orders.length === 0}
                   className="inline-flex items-center justify-center gap-2 rounded-full border border-[rgba(179,63,47,0.2)] bg-[rgba(179,63,47,0.08)] px-5 py-3 text-sm font-bold uppercase tracking-[0.14em] text-[var(--danger)] disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   <Trash2 size={16} />
-                  {resettingOrders ? "Limpando..." : "Resetar historico"}
+                  {resettingOrders ? "Arquivando..." : "Arquivar historico"}
                 </button>
                 <Link
                   href="/cozinha"

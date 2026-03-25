@@ -3,26 +3,20 @@ import { cookies } from "next/headers";
 
 export const ownerSessionCookieName = "fastfood-owner-session";
 const ownerSessionTtlSeconds = 60 * 60 * 12;
-const fallbackOwnerPasswords = ["hamburgueria123", "Cleison@123"];
 
 function getOwnerPassword() {
-  return process.env.OWNER_ACCESS_PASSWORD || "hamburgueria123";
+  return process.env.OWNER_ACCESS_PASSWORD ?? "";
 }
 
 function getAcceptedOwnerPasswords() {
-  const configured = getOwnerPassword()
+  return getOwnerPassword()
     .split(",")
     .map((value) => value.trim())
     .filter(Boolean);
-
-  return Array.from(new Set([...configured, ...fallbackOwnerPasswords]));
 }
 
 function getSessionSecret() {
-  return (
-    process.env.OWNER_SESSION_SECRET ||
-    `${getOwnerPassword()}:fastfood-owner-session-secret`
-  );
+  return process.env.OWNER_SESSION_SECRET || "owner-session-development-secret";
 }
 
 function signValue(value: string) {

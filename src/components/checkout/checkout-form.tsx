@@ -12,6 +12,7 @@ import { useCartStore } from "@/store/cart-store";
 
 const paymentOptions: PaymentMethod[] = [
   "PIX",
+  "DINHEIRO",
   "CARTAO_CREDITO",
   "CARTAO_DEBITO",
 ];

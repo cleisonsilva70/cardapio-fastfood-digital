@@ -144,6 +144,7 @@ model Order {
   paymentCode           String?
   paymentConfirmedAt    DateTime?
   kitchenClearedAt      DateTime?
+  archivedAt            DateTime?
   subtotal              Decimal       @db.Decimal(10, 2)
   deliveryFee           Decimal       @db.Decimal(10, 2) @default(0)
   estimatedDeliveryMin  Int?

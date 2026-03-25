@@ -18,7 +18,7 @@ export async function DELETE() {
     }
 
     return NextResponse.json(
-      { error: "Nao foi possivel limpar todo o historico agora." },
+      { error: "Nao foi possivel arquivar todo o historico agora." },
       { status: 500 },
     );
   }

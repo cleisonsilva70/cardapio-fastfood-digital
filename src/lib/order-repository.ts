@@ -84,6 +84,7 @@ type PersistedOrder = {
   paymentCode: string | null;
   paymentConfirmedAt: Date | null;
   kitchenClearedAt: Date | null;
+  archivedAt: Date | null;
   subtotal: { toString(): string } | number;
   deliveryFee: { toString(): string } | number;
   estimatedDeliveryMin?: number | null;
@@ -196,6 +197,7 @@ function toOrder(params: {
   paymentCode?: string;
   paymentConfirmedAt?: Date;
   kitchenClearedAt?: Date;
+  archivedAt?: Date;
   status?: OrderStatus;
   createdAt?: Date;
   updatedAt?: Date;
@@ -222,6 +224,7 @@ function toOrder(params: {
     paymentCode: params.paymentCode,
     paymentConfirmedAt: params.paymentConfirmedAt?.toISOString(),
     kitchenClearedAt: params.kitchenClearedAt?.toISOString(),
+    archivedAt: params.archivedAt?.toISOString(),
     subtotal: params.subtotal,
     deliveryFee: params.deliveryFee,
     estimatedDeliveryMin: params.estimatedDeliveryMin,
@@ -351,6 +354,7 @@ function mapPersistedOrder(order: PersistedOrder): Order {
     paymentCode: order.paymentCode ?? undefined,
     paymentConfirmedAt: order.paymentConfirmedAt?.toISOString(),
     kitchenClearedAt: order.kitchenClearedAt?.toISOString(),
+    archivedAt: order.archivedAt?.toISOString(),
     subtotal: Number(order.subtotal),
     deliveryFee: Number(order.deliveryFee),
     estimatedDeliveryMin: order.estimatedDeliveryMin ?? undefined,
@@ -435,7 +439,7 @@ export async function listProducts() {
 
 export async function listOrders() {
   if (!canUseDatabase()) {
-    return sortOrders(memoryOrders);
+    return sortOrders(memoryOrders.filter((order) => !order.archivedAt));
   }
 
   const storeId = await getCurrentStoreId();
@@ -447,6 +451,7 @@ export async function listOrders() {
   const orders = (await prisma.order.findMany({
     where: {
       storeId,
+      archivedAt: null,
     },
     include: { items: true },
     orderBy: { orderNumber: "desc" },
@@ -460,6 +465,7 @@ export async function listKitchenOrders() {
     return sortOrders(
       memoryOrders.filter(
         (order) =>
+          !order.archivedAt &&
           order.paymentStatus === "PAGO" &&
           !(order.status === "ENTREGUE" && order.kitchenClearedAt),
       ),
@@ -475,6 +481,7 @@ export async function listKitchenOrders() {
   const orders = (await prisma.order.findMany({
     where: {
       storeId,
+      archivedAt: null,
       paymentStatus: "PAGO",
       OR: [
         { status: { not: "ENTREGUE" } },
@@ -490,7 +497,11 @@ export async function listKitchenOrders() {
 
 export async function listPendingPaymentOrders() {
   if (!canUseDatabase()) {
-    return sortOrders(memoryOrders.filter((order) => order.paymentStatus === "PENDENTE"));
+    return sortOrders(
+      memoryOrders.filter(
+        (order) => !order.archivedAt && order.paymentStatus === "PENDENTE",
+      ),
+    );
   }
 
   const storeId = await getCurrentStoreId();
@@ -502,6 +513,7 @@ export async function listPendingPaymentOrders() {
   const orders = (await prisma.order.findMany({
     where: {
       storeId,
+      archivedAt: null,
       paymentStatus: "PENDENTE",
     },
     include: { items: true },
@@ -1259,8 +1271,16 @@ export async function clearKitchenDeliveredOrders() {
 
 export async function clearAllOrdersHistory() {
   if (!canUseDatabase()) {
-    const cleared = memoryOrders.length;
-    memoryOrders.splice(0, memoryOrders.length);
+    const archivedAt = new Date().toISOString();
+    let cleared = 0;
+
+    memoryOrders.forEach((order) => {
+      if (!order.archivedAt) {
+        order.archivedAt = archivedAt;
+        cleared += 1;
+      }
+    });
+
     return { cleared };
   }
 
@@ -1270,21 +1290,18 @@ export async function clearAllOrdersHistory() {
     throw new OrderFlowError("Loja principal nao encontrada.", 500);
   }
 
-  const result = await prisma.$transaction(async (tx) => {
-    const deletedOrders = await tx.order.deleteMany({
-      where: { storeId },
-    });
-
-    await tx.orderCounter.upsert({
-      where: { key: "orders" },
-      update: { value: 0 },
-      create: { key: "orders", value: 0 },
-    });
-
-    return deletedOrders.count;
+  const archivedAt = new Date();
+  const result = await prisma.order.updateMany({
+    where: {
+      storeId,
+      archivedAt: null,
+    },
+    data: {
+      archivedAt,
+    },
   });
 
-  return { cleared: result };
+  return { cleared: result.count };
 }
 
 export async function confirmOrderPaymentByExternalId(externalId: string) {
