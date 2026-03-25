@@ -12,7 +12,6 @@ import {
 import { formatCurrency } from "@/lib/format";
 import type { Order, OrderStatus } from "@/lib/types";
 import { cn } from "@/lib/utils";
-import { LogoutButton } from "./logout-button";
 
 async function fetchOrders(): Promise<Order[]> {
   const response = await fetch("/api/pedidos?scope=kitchen", {
@@ -329,7 +328,6 @@ export function KitchenBoard({ initialOrders }: { initialOrders: Order[] }) {
               >
                 Abrir atendimento
               </Link>
-              <LogoutButton />
             </div>
             <div className="grid w-full gap-3 sm:grid-cols-2">
               <div className="rounded-[26px] border border-[var(--line)] bg-white/80 px-5 py-4">

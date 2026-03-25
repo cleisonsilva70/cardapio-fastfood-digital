@@ -14,7 +14,6 @@ import {
 import { paymentLabels, paymentStatusLabels } from "@/lib/constants";
 import type { Order, PaymentMethod } from "@/lib/types";
 import { cn } from "@/lib/utils";
-import { LogoutButton } from "@/components/cozinha/logout-button";
 
 type DateFilterMode = "DIA" | "SEMANA" | "MES" | "ANO" | "PERIODO";
 
@@ -427,7 +426,6 @@ export function ServiceBoard({ initialOrders }: { initialOrders: Order[] }) {
                 <Volume2 size={16} />
                 {soundEnabled ? "Som ligado" : "Som desligado"}
               </button>
-              <LogoutButton />
             </div>
             <div className="grid w-full gap-3 md:grid-cols-3">
               <div className="rounded-[26px] border border-white/10 bg-[linear-gradient(180deg,rgba(35,21,15,0.96),rgba(57,31,21,0.92))] px-5 py-4 text-white shadow-[0_20px_50px_rgba(35,21,15,0.24)]">
