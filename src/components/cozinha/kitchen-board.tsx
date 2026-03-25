@@ -194,6 +194,13 @@ export function KitchenBoard({ initialOrders }: { initialOrders: Order[] }) {
     );
   }, [orders, search]);
 
+  const totalNewOrders = groupedOrders.NOVO.length;
+  const totalReadyOrders = groupedOrders.PRONTO.length;
+  const totalDelayedOrders = orders.filter((order) => {
+    const ageInMinutes = getOrderAgeInMinutes(order.createdAt);
+    return ageInMinutes >= 25 && order.status !== "ENTREGUE";
+  }).length;
+
   function getOrderAgeInMinutes(createdAt: string) {
     const created = new Date(createdAt).getTime();
     const now = Date.now();
@@ -283,9 +290,6 @@ export function KitchenBoard({ initialOrders }: { initialOrders: Order[] }) {
               apenas pedidos com pagamento confirmado, prontos para entrar na
               operacao da cozinha.
             </p>
-            <p className="mt-3 text-xs font-semibold uppercase tracking-[0.18em] text-[var(--brand-strong)]">
-              Campainha reforcada para cozinha, com varias batidas e volume mais alto.
-            </p>
           </div>
           <div className="flex flex-col items-start gap-3 sm:flex-row sm:items-center sm:flex-wrap">
             <div className="rounded-[26px] border border-white/10 bg-[linear-gradient(180deg,rgba(35,21,15,0.96),rgba(57,31,21,0.92))] px-5 py-4 text-white shadow-[0_20px_50px_rgba(35,21,15,0.24)]">
@@ -294,6 +298,20 @@ export function KitchenBoard({ initialOrders }: { initialOrders: Order[] }) {
               </p>
               <strong className="mt-2 block text-3xl font-black">
                 {orders.length}
+              </strong>
+            </div>
+            <div className="rounded-[26px] border border-[var(--line)] bg-white/80 px-5 py-4">
+              <p className="text-xs uppercase tracking-[0.24em] text-[var(--muted)]">
+                Novos na fila
+              </p>
+              <strong className="mt-2 block text-3xl font-black">{totalNewOrders}</strong>
+            </div>
+            <div className="rounded-[26px] border border-[rgba(184,68,31,0.12)] bg-[rgba(184,68,31,0.08)] px-5 py-4">
+              <p className="text-xs uppercase tracking-[0.24em] text-[var(--muted)]">
+                Prioridade
+              </p>
+              <strong className="mt-2 block text-3xl font-black text-[var(--danger)]">
+                {totalDelayedOrders}
               </strong>
             </div>
             <button
@@ -341,12 +359,6 @@ export function KitchenBoard({ initialOrders }: { initialOrders: Order[] }) {
             >
               Abrir atendimento
             </Link>
-            <Link
-              href="/painel"
-              className="glass-pill rounded-full px-5 py-3 text-sm font-bold uppercase tracking-[0.14em] text-[var(--foreground)] transition-colors hover:bg-white"
-            >
-              Editar catalogo
-            </Link>
             <LogoutButton />
           </div>
         </div>
@@ -374,11 +386,16 @@ export function KitchenBoard({ initialOrders }: { initialOrders: Order[] }) {
               className="w-full rounded-full border border-[var(--line)] bg-white py-3 pl-11 pr-4 text-sm"
             />
           </label>
-          <div className="glass-pill rounded-full px-4 py-2 text-xs font-semibold uppercase tracking-[0.18em] text-[var(--brand-strong)]">
-            {search ? "Filtro ativo" : "Todos os pedidos"}
+          <div className="flex flex-wrap gap-2">
+            <div className="glass-pill rounded-full px-4 py-2 text-xs font-semibold uppercase tracking-[0.18em] text-[var(--brand-strong)]">
+              {search ? "Filtro ativo" : "Todos os pedidos"}
+            </div>
+            <div className="glass-pill rounded-full px-4 py-2 text-xs font-semibold uppercase tracking-[0.18em] text-[var(--brand-strong)]">
+              Prontos agora: {totalReadyOrders}
+            </div>
           </div>
         </div>
-        <div className={`grid grid-cols-4 gap-5 ${tabletMode ? "min-w-[1360px]" : "min-w-[1180px]"}`}>
+        <div className={`grid grid-cols-4 gap-5 ${tabletMode ? "min-w-[1500px]" : "min-w-[1240px]"}`}>
           {orderStatusSequence.map((status) => (
             <div
               key={status}
@@ -423,6 +440,7 @@ export function KitchenBoard({ initialOrders }: { initialOrders: Order[] }) {
                   const ageInMinutes = getOrderAgeInMinutes(order.createdAt);
                   const isFresh = ageInMinutes <= 8 && order.status === "NOVO";
                   const isDelayed = ageInMinutes >= 25 && order.status !== "ENTREGUE";
+                  const isDelivered = order.status === "ENTREGUE";
 
                   return (
                     <article
@@ -435,6 +453,7 @@ export function KitchenBoard({ initialOrders }: { initialOrders: Order[] }) {
                           : isDelayed
                             ? "border-[rgba(179,63,47,0.24)]"
                             : "border-[var(--line)]",
+                        isDelivered ? "bg-[rgba(255,255,255,0.76)]" : "",
                       )}
                     >
                       <div className="absolute right-0 top-0 h-20 w-20 rounded-full bg-[color-mix(in_srgb,var(--accent)_28%,transparent)] blur-2xl" />
@@ -447,7 +466,7 @@ export function KitchenBoard({ initialOrders }: { initialOrders: Order[] }) {
                             Horario: {order.displayTime}
                           </p>
                           <p className="mt-1 text-xs font-semibold uppercase tracking-[0.16em] text-[var(--muted)]">
-                            {ageInMinutes} min
+                            {isDelivered ? "Pedido finalizado" : `${ageInMinutes} min`}
                           </p>
                         </div>
                         <div className="flex flex-col items-end gap-2">
@@ -468,19 +487,24 @@ export function KitchenBoard({ initialOrders }: { initialOrders: Order[] }) {
                       </div>
 
                       <div className="mt-4">
-                        <h3 className="text-lg font-black">
-                          {order.customerName}
-                        </h3>
-                        <ul className="mt-3 space-y-2 text-sm leading-6 text-[var(--foreground)]">
-                          {order.items.map((item) => (
-                            <li key={item.id}>
-                              {"\u2022"} {item.productName}
-                              <br />
-                              {item.quantity}x {formatCurrency(item.unitPrice)} ={" "}
-                              {formatCurrency(item.subtotal)}
-                            </li>
-                          ))}
-                        </ul>
+                        <h3 className="text-lg font-black">{order.customerName}</h3>
+                        {isDelivered ? (
+                          <div className="mt-3 rounded-[18px] border border-[var(--line)] bg-[var(--surface)] px-4 py-4 text-sm leading-6 text-[var(--muted)]">
+                            <p>{order.items.length} item(ns) finalizados neste pedido.</p>
+                            <p className="mt-1">Pedido concluido e pronto para sair da tela quando desejar.</p>
+                          </div>
+                        ) : (
+                          <ul className="mt-3 space-y-2 text-sm leading-6 text-[var(--foreground)]">
+                            {order.items.map((item) => (
+                              <li key={item.id}>
+                                {"\u2022"} {item.productName}
+                                <br />
+                                {item.quantity}x {formatCurrency(item.unitPrice)} ={" "}
+                                {formatCurrency(item.subtotal)}
+                              </li>
+                            ))}
+                          </ul>
+                        )}
                       </div>
 
                       <div className="mt-4 flex items-center justify-between rounded-[18px] bg-[var(--surface)] px-4 py-3">
