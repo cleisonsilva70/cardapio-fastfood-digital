@@ -9,6 +9,7 @@ import {
   formatDateInputValue,
   formatMonthInputValue,
   formatYearValue,
+  parseDateInputValue,
 } from "@/lib/format";
 import { paymentLabels, paymentStatusLabels } from "@/lib/constants";
 import type { Order, PaymentMethod } from "@/lib/types";
@@ -109,8 +110,8 @@ function matchesSelectedDateFilter(
       return true;
     }
 
-    const start = rangeStart ? new Date(rangeStart) : null;
-    const end = rangeEnd ? new Date(rangeEnd) : null;
+    const start = rangeStart ? parseDateInputValue(rangeStart) : null;
+    const end = rangeEnd ? parseDateInputValue(rangeEnd) : null;
 
     if (start) {
       start.setHours(0, 0, 0, 0);

@@ -73,3 +73,26 @@ export function formatMonthInputValue(date: Date) {
 export function formatYearValue(date: Date) {
   return getDateParts(date).year;
 }
+
+export function parseDateInputValue(value: string) {
+  if (!value) {
+    return null;
+  }
+
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
+
+  if (!match) {
+    return null;
+  }
+
+  const [, yearText, monthText, dayText] = match;
+  return new Date(
+    Number(yearText),
+    Number(monthText) - 1,
+    Number(dayText),
+    0,
+    0,
+    0,
+    0,
+  );
+}
