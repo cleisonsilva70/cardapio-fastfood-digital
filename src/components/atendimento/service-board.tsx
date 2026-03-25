@@ -10,6 +10,8 @@ import type { Order, PaymentMethod } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { LogoutButton } from "@/components/cozinha/logout-button";
 
+type DateFilterMode = "DIA" | "SEMANA" | "MES" | "ANO" | "PERIODO";
+
 async function fetchAtendimentoOrders(): Promise<Order[]> {
   const response = await fetch("/api/pedidos", {
     cache: "no-store",
@@ -26,39 +28,106 @@ async function fetchAtendimentoOrders(): Promise<Order[]> {
   return response.json();
 }
 
+function getIsoWeekValue(date: Date) {
+  const target = new Date(date);
+  const dayNumber = (target.getDay() + 6) % 7;
+  target.setDate(target.getDate() - dayNumber + 3);
+  const firstThursday = new Date(target.getFullYear(), 0, 4);
+  const firstDayNumber = (firstThursday.getDay() + 6) % 7;
+  firstThursday.setDate(firstThursday.getDate() - firstDayNumber + 3);
+  const weekNumber =
+    1 + Math.round((target.getTime() - firstThursday.getTime()) / (7 * 24 * 60 * 60 * 1000));
+
+  return `${target.getFullYear()}-W${String(weekNumber).padStart(2, "0")}`;
+}
+
+function getIsoWeekRange(weekValue: string) {
+  const match = /^(\d{4})-W(\d{2})$/.exec(weekValue);
+
+  if (!match) {
+    return null;
+  }
+
+  const [, yearText, weekText] = match;
+  const year = Number(yearText);
+  const week = Number(weekText);
+  const simple = new Date(year, 0, 1 + (week - 1) * 7);
+  const dayOfWeek = simple.getDay();
+  const monday = new Date(simple);
+
+  if (dayOfWeek <= 4) {
+    monday.setDate(simple.getDate() - simple.getDay() + 1);
+  } else {
+    monday.setDate(simple.getDate() + 8 - simple.getDay());
+  }
+
+  monday.setHours(0, 0, 0, 0);
+
+  const sunday = new Date(monday);
+  sunday.setDate(monday.getDate() + 6);
+  sunday.setHours(23, 59, 59, 999);
+
+  return { start: monday, end: sunday };
+}
+
 function matchesSelectedDateFilter(
   createdAtValue: string,
-  dateFilter: "HOJE" | "ONTEM" | "7_DIAS" | "DATA",
-  customDate: string,
+  dateFilterMode: DateFilterMode,
+  selectedDay: string,
+  selectedWeek: string,
+  selectedMonth: string,
+  selectedYear: string,
+  rangeStart: string,
+  rangeEnd: string,
 ) {
-  const now = new Date();
-  const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  const startOfYesterday = new Date(startOfToday);
-  startOfYesterday.setDate(startOfYesterday.getDate() - 1);
-  const startOfSevenDays = new Date(startOfToday);
-  startOfSevenDays.setDate(startOfSevenDays.getDate() - 6);
   const createdAt = new Date(createdAtValue);
 
-  if (dateFilter === "HOJE") {
-    return createdAt >= startOfToday;
+  if (dateFilterMode === "DIA") {
+    return selectedDay ? createdAt.toISOString().slice(0, 10) === selectedDay : true;
   }
 
-  if (dateFilter === "ONTEM") {
-    return createdAt >= startOfYesterday && createdAt < startOfToday;
+  if (dateFilterMode === "SEMANA") {
+    const range = getIsoWeekRange(selectedWeek);
+    return range ? createdAt >= range.start && createdAt <= range.end : true;
   }
 
-  if (dateFilter === "7_DIAS") {
-    return createdAt >= startOfSevenDays;
+  if (dateFilterMode === "MES") {
+    return selectedMonth ? createdAt.toISOString().slice(0, 7) === selectedMonth : true;
   }
 
-  if (dateFilter === "DATA") {
-    return customDate ? createdAt.toISOString().slice(0, 10) === customDate : true;
+  if (dateFilterMode === "ANO") {
+    return selectedYear ? createdAt.getFullYear() === Number(selectedYear) : true;
+  }
+
+  if (dateFilterMode === "PERIODO") {
+    if (!rangeStart && !rangeEnd) {
+      return true;
+    }
+
+    const start = rangeStart ? new Date(rangeStart) : null;
+    const end = rangeEnd ? new Date(rangeEnd) : null;
+
+    if (start) {
+      start.setHours(0, 0, 0, 0);
+    }
+
+    if (end) {
+      end.setHours(23, 59, 59, 999);
+    }
+
+    return (!start || createdAt >= start) && (!end || createdAt <= end);
   }
 
   return true;
 }
 
 export function ServiceBoard({ initialOrders }: { initialOrders: Order[] }) {
+  const now = new Date();
+  const currentDay = now.toISOString().slice(0, 10);
+  const currentMonth = currentDay.slice(0, 7);
+  const currentYear = String(now.getFullYear());
+  const currentWeek = getIsoWeekValue(now);
+
   const router = useRouter();
   const [orders, setOrders] = useState(initialOrders);
   const [loadingId, setLoadingId] = useState<string | null>(null);
@@ -66,8 +135,13 @@ export function ServiceBoard({ initialOrders }: { initialOrders: Order[] }) {
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<"PENDENTES" | "PAGOS">("PENDENTES");
   const [paymentFilter, setPaymentFilter] = useState<PaymentMethod | "TODOS">("TODOS");
-  const [dateFilter, setDateFilter] = useState<"HOJE" | "ONTEM" | "7_DIAS" | "DATA">("HOJE");
-  const [customDate, setCustomDate] = useState("");
+  const [dateFilterMode, setDateFilterMode] = useState<DateFilterMode>("DIA");
+  const [selectedDay, setSelectedDay] = useState(currentDay);
+  const [selectedWeek, setSelectedWeek] = useState(currentWeek);
+  const [selectedMonth, setSelectedMonth] = useState(currentMonth);
+  const [selectedYear, setSelectedYear] = useState(currentYear);
+  const [rangeStart, setRangeStart] = useState(currentDay);
+  const [rangeEnd, setRangeEnd] = useState(currentDay);
 
   useEffect(() => {
     const timer = window.setInterval(async () => {
@@ -92,9 +166,18 @@ export function ServiceBoard({ initialOrders }: { initialOrders: Order[] }) {
   const ordersInSelectedPeriod = useMemo(
     () =>
       orders.filter((order) =>
-        matchesSelectedDateFilter(order.createdAt, dateFilter, customDate),
+        matchesSelectedDateFilter(
+          order.createdAt,
+          dateFilterMode,
+          selectedDay,
+          selectedWeek,
+          selectedMonth,
+          selectedYear,
+          rangeStart,
+          rangeEnd,
+        ),
       ),
-    [customDate, dateFilter, orders],
+    [dateFilterMode, orders, rangeEnd, rangeStart, selectedDay, selectedMonth, selectedWeek, selectedYear],
   );
 
   const totalPendingValue = useMemo(
@@ -151,7 +234,16 @@ export function ServiceBoard({ initialOrders }: { initialOrders: Order[] }) {
           : order.paymentStatus === "PAGO";
       const matchesPayment =
         paymentFilter === "TODOS" || order.paymentMethod === paymentFilter;
-      const matchesDate = matchesSelectedDateFilter(order.createdAt, dateFilter, customDate);
+      const matchesDate = matchesSelectedDateFilter(
+        order.createdAt,
+        dateFilterMode,
+        selectedDay,
+        selectedWeek,
+        selectedMonth,
+        selectedYear,
+        rangeStart,
+        rangeEnd,
+      );
 
       const matchesSearch =
         !term ||
@@ -161,7 +253,7 @@ export function ServiceBoard({ initialOrders }: { initialOrders: Order[] }) {
 
       return matchesStatus && matchesPayment && matchesDate && matchesSearch;
     });
-  }, [filter, orders, paymentFilter, search, dateFilter, customDate]);
+  }, [dateFilterMode, filter, orders, paymentFilter, rangeEnd, rangeStart, search, selectedDay, selectedMonth, selectedWeek, selectedYear]);
 
   function getWaitMinutes(createdAt: string) {
     return Math.max(0, Math.round((Date.now() - new Date(createdAt).getTime()) / 60000));
@@ -273,33 +365,73 @@ export function ServiceBoard({ initialOrders }: { initialOrders: Order[] }) {
               ticket medio e totais do atendimento.
             </p>
           </div>
-          <div className="flex flex-wrap items-center gap-2">
-            {([
-              ["HOJE", "Hoje"],
-              ["ONTEM", "Ontem"],
-              ["7_DIAS", "Ultimos 7 dias"],
-              ["DATA", "Data especifica"],
-            ] as const).map(([value, label]) => (
-              <button
-                key={value}
-                type="button"
-                onClick={() => setDateFilter(value)}
-                className={`rounded-full px-4 py-2 text-xs font-bold uppercase tracking-[0.14em] ${
-                  dateFilter === value
-                    ? "bg-[var(--accent)] text-[var(--foreground)]"
-                    : "glass-pill text-[var(--foreground)]"
-                }`}
-              >
-                {label}
-              </button>
-            ))}
-            {dateFilter === "DATA" ? (
+          <div className="flex flex-col items-stretch gap-3 sm:min-w-[360px]">
+            <select
+              value={dateFilterMode}
+              onChange={(event) => setDateFilterMode(event.target.value as DateFilterMode)}
+              className="rounded-[18px] border border-[var(--line)] bg-white px-4 py-3 text-sm font-semibold uppercase tracking-[0.12em] text-[var(--foreground)]"
+            >
+              <option value="DIA">Dia</option>
+              <option value="SEMANA">Semana</option>
+              <option value="MES">Mes</option>
+              <option value="ANO">Ano</option>
+              <option value="PERIODO">Periodo personalizado</option>
+            </select>
+
+            {dateFilterMode === "DIA" ? (
               <input
                 type="date"
-                value={customDate}
-                onChange={(event) => setCustomDate(event.target.value)}
-                className="rounded-full border border-[var(--line)] bg-white px-4 py-2 text-sm"
+                value={selectedDay}
+                onChange={(event) => setSelectedDay(event.target.value)}
+                className="rounded-[18px] border border-[var(--line)] bg-white px-4 py-3 text-sm"
               />
+            ) : null}
+
+            {dateFilterMode === "SEMANA" ? (
+              <input
+                type="week"
+                value={selectedWeek}
+                onChange={(event) => setSelectedWeek(event.target.value)}
+                className="rounded-[18px] border border-[var(--line)] bg-white px-4 py-3 text-sm"
+              />
+            ) : null}
+
+            {dateFilterMode === "MES" ? (
+              <input
+                type="month"
+                value={selectedMonth}
+                onChange={(event) => setSelectedMonth(event.target.value)}
+                className="rounded-[18px] border border-[var(--line)] bg-white px-4 py-3 text-sm"
+              />
+            ) : null}
+
+            {dateFilterMode === "ANO" ? (
+              <input
+                type="number"
+                min="2020"
+                max="2100"
+                value={selectedYear}
+                onChange={(event) => setSelectedYear(event.target.value)}
+                placeholder="2026"
+                className="rounded-[18px] border border-[var(--line)] bg-white px-4 py-3 text-sm"
+              />
+            ) : null}
+
+            {dateFilterMode === "PERIODO" ? (
+              <div className="grid gap-3 sm:grid-cols-2">
+                <input
+                  type="date"
+                  value={rangeStart}
+                  onChange={(event) => setRangeStart(event.target.value)}
+                  className="rounded-[18px] border border-[var(--line)] bg-white px-4 py-3 text-sm"
+                />
+                <input
+                  type="date"
+                  value={rangeEnd}
+                  onChange={(event) => setRangeEnd(event.target.value)}
+                  className="rounded-[18px] border border-[var(--line)] bg-white px-4 py-3 text-sm"
+                />
+              </div>
             ) : null}
           </div>
         </div>
