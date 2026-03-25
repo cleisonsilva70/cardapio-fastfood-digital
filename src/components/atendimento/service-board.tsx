@@ -2,8 +2,8 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
-import { CheckCircle2, Search } from "lucide-react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { CheckCircle2, Search, Volume2 } from "lucide-react";
 import {
   formatCurrency,
   formatDateInputValue,
@@ -141,6 +141,7 @@ export function ServiceBoard({ initialOrders }: { initialOrders: Order[] }) {
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<"PENDENTES" | "PAGOS">("PENDENTES");
   const [paymentFilter, setPaymentFilter] = useState<PaymentMethod | "TODOS">("TODOS");
+  const [soundEnabled, setSoundEnabled] = useState(true);
   const [dateFilterMode, setDateFilterMode] = useState<DateFilterMode>("DIA");
   const [selectedDay, setSelectedDay] = useState(currentDay);
   const [selectedWeek, setSelectedWeek] = useState(currentWeek);
@@ -148,13 +149,98 @@ export function ServiceBoard({ initialOrders }: { initialOrders: Order[] }) {
   const [selectedYear, setSelectedYear] = useState(currentYear);
   const [rangeStart, setRangeStart] = useState(currentDay);
   const [rangeEnd, setRangeEnd] = useState(currentDay);
+  const soundEnabledRef = useRef(true);
+  const previousOrderIdsRef = useRef(new Set(initialOrders.map((order) => order.id)));
+
+  const playAlertTone = useCallback(() => {
+    if (typeof window === "undefined") {
+      return;
+    }
+
+    const audioContext =
+      window.AudioContext
+        ? new window.AudioContext()
+        : "webkitAudioContext" in window
+          ? new (window as Window & { webkitAudioContext: typeof AudioContext })
+              .webkitAudioContext()
+          : null;
+
+    if (!audioContext) {
+      return;
+    }
+
+    const masterGain = audioContext.createGain();
+    masterGain.connect(audioContext.destination);
+    masterGain.gain.setValueAtTime(0.75, audioContext.currentTime);
+
+    for (const offset of [0, 0.2, 0.46]) {
+      const start = audioContext.currentTime + offset;
+      const fundamental = audioContext.createOscillator();
+      const harmonic = audioContext.createOscillator();
+      const strikeGain = audioContext.createGain();
+
+      fundamental.type = "sine";
+      harmonic.type = "triangle";
+      fundamental.frequency.setValueAtTime(1320, start);
+      harmonic.frequency.setValueAtTime(2640, start);
+
+      strikeGain.gain.setValueAtTime(0.0001, start);
+      strikeGain.gain.exponentialRampToValueAtTime(0.4, start + 0.01);
+      strikeGain.gain.exponentialRampToValueAtTime(0.12, start + 0.12);
+      strikeGain.gain.exponentialRampToValueAtTime(0.0001, start + 0.85);
+
+      fundamental.connect(strikeGain);
+      harmonic.connect(strikeGain);
+      strikeGain.connect(masterGain);
+
+      fundamental.start(start);
+      harmonic.start(start);
+      fundamental.stop(start + 0.85);
+      harmonic.stop(start + 0.85);
+    }
+
+    if ("vibrate" in navigator) {
+      navigator.vibrate([100, 70, 100]);
+    }
+
+    window.setTimeout(() => {
+      void audioContext.close();
+    }, 1600);
+  }, []);
+
+  useEffect(() => {
+    const storedValue = window.localStorage.getItem("service-sound-enabled");
+
+    if (storedValue === "false") {
+      setSoundEnabled(false);
+      soundEnabledRef.current = false;
+    }
+  }, []);
+
+  useEffect(() => {
+    soundEnabledRef.current = soundEnabled;
+    window.localStorage.setItem(
+      "service-sound-enabled",
+      soundEnabled ? "true" : "false",
+    );
+  }, [soundEnabled]);
 
   useEffect(() => {
     const timer = window.setInterval(async () => {
       try {
         const nextOrders = await fetchAtendimentoOrders();
+        const nextOrderIds = new Set(nextOrders.map((order) => order.id));
+        const hasIncomingOrder = Array.from(nextOrderIds).some(
+          (orderId) => !previousOrderIdsRef.current.has(orderId),
+        );
+
         setOrders(nextOrders);
+        previousOrderIdsRef.current = nextOrderIds;
         setBoardError("");
+
+        if (hasIncomingOrder && soundEnabledRef.current) {
+          playAlertTone();
+        }
       } catch (error) {
         if (error instanceof Error && error.message.includes("401")) {
           setBoardError("Sua sessao expirou. Faca login novamente.");
@@ -167,7 +253,7 @@ export function ServiceBoard({ initialOrders }: { initialOrders: Order[] }) {
     }, 12000);
 
     return () => window.clearInterval(timer);
-  }, [router]);
+  }, [playAlertTone, router]);
 
   const ordersInSelectedPeriod = useMemo(
     () =>
@@ -329,6 +415,18 @@ export function ServiceBoard({ initialOrders }: { initialOrders: Order[] }) {
               >
                 Ir para cozinha
               </Link>
+              <button
+                type="button"
+                onClick={() => setSoundEnabled((current) => !current)}
+                className={`inline-flex items-center justify-center gap-2 rounded-full px-5 py-3 text-sm font-bold uppercase tracking-[0.14em] ${
+                  soundEnabled
+                    ? "bg-[var(--foreground)] text-white"
+                    : "glass-pill text-[var(--foreground)]"
+                }`}
+              >
+                <Volume2 size={16} />
+                {soundEnabled ? "Som ligado" : "Som desligado"}
+              </button>
               <LogoutButton />
             </div>
             <div className="grid w-full gap-3 md:grid-cols-3">
