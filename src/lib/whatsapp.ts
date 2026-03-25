@@ -20,12 +20,13 @@ export function buildOrderMessage(params: {
   createdAt?: Date;
 }) {
   const createdAt = params.createdAt ?? new Date();
+  const divider = "━━━━━━━━━━━━";
   const itemLines = params.items
     .map(
       (item) =>
-        `- ${item.name}${
-          item.customizationText ? `\n  ${item.customizationText}` : ""
-        }\n  ${item.quantity}x ${formatCurrency(item.price)} = ${formatCurrency(item.subtotal)}`,
+        `▪️ *${item.name}*${
+          item.customizationText ? `\n${item.customizationText}` : ""
+        }\n${item.quantity}x ${formatCurrency(item.price)} = ${formatCurrency(item.subtotal)}`,
     )
     .join("\n\n");
 
@@ -33,7 +34,7 @@ export function buildOrderMessage(params: {
     `Subtotal: ${formatCurrency(params.subtotal)}`,
     params.deliveryFee > 0 ? `Entrega: ${formatCurrency(params.deliveryFee)}` : "Entrega: sem taxa",
     `Previsao: ${formatDeliveryEstimate(params.estimatedDeliveryMin, params.estimatedDeliveryMax)}`,
-    `Total: ${formatCurrency(params.total)}`,
+    `*Total: ${formatCurrency(params.total)}*`,
   ];
 
   const addressLines = [
@@ -49,33 +50,37 @@ export function buildOrderMessage(params: {
 
   return [
     `🍔 *NOVO PEDIDO*`,
-    "",
+    divider,
     `🧾 Pedido #${params.orderNumberFormatted}`,
     `🕒 Horario: ${formatTimeLabel(createdAt)}`,
     "",
     `📦 *ITENS*`,
-    "",
+    divider,
     itemLines,
     "",
     `💰 *RESUMO*`,
-    "",
+    divider,
     ...summaryLines,
     "",
     `👤 *CLIENTE*`,
-    "",
+    divider,
     `Nome: ${params.checkout.customerName}`,
     `Telefone: ${formatPhone(params.checkout.phone)}`,
     "",
     `📍 *ENTREGA*`,
-    "",
+    divider,
     ...addressLines,
     "",
-    params.checkout.customerNote ? `📝 *OBSERVACAO GERAL*\n${params.checkout.customerNote}\n` : null,
+    params.checkout.customerNote
+      ? `📝 *OBSERVACAO GERAL*\n${divider}\n${params.checkout.customerNote}\n`
+      : null,
     params.checkout.customerNote ? "" : null,
     `💳 *PAGAMENTO*`,
-    "",
+    divider,
     paymentLabels[params.checkout.paymentMethod],
     cashChangeLabel ? `Troco para: ${cashChangeLabel}` : null,
+    "",
+    "✅ Pedido pronto para confirmacao no atendimento.",
   ]
     .filter((line): line is string => Boolean(line))
     .join("\n");
